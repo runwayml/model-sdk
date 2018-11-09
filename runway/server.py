@@ -31,6 +31,8 @@ def deserialize(value, arg_type):
         return deserialize_image(value)
     elif arg_type == 'number':
         return float(value)
+    elif arg_type == 'vector':
+        return np.array(value)
 
 
 def serialize(value, arg_type):
@@ -40,6 +42,8 @@ def serialize(value, arg_type):
         return serialize_image(value)
     elif arg_type == 'number':
         return float(value)
+    elif arg_type == 'vector':
+        return value.tolist()
 
 
 class RunwayServer(object):
@@ -66,7 +70,7 @@ class RunwayServer(object):
                             input_dict[input_name], input_type)
                     output_dict = fn(input_dict)
                     for output_name, output_type in outputs.items():
-                        output_dict[output_name] = deserialize(
+                        output_dict[output_name] = serialize(
                             output_dict[output_name], output_type)
                     return jsonify(output_dict)
                 except RunwayError as err:
