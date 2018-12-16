@@ -9,9 +9,8 @@ from .exceptions import RunwayError, MissingInputException
 
 def deserialize_image(value):
     image = value[value.find(",")+1:]
-    image = base64.decodestring(image)
-    image = Image.open(io.BytesIO(image))
-    return np.array(image)
+    image = base64.decodestring(image.encode('utf8'))
+    return Image.open(io.BytesIO(image))
 
 
 def serialize_image(value):
@@ -21,7 +20,7 @@ def serialize_image(value):
         im_pil = value
     buffer = io.BytesIO()
     im_pil.save(buffer, format='JPEG')
-    return 'image/jpeg;base64,' + base64.b64encode(buffer.getvalue())
+    return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue())
 
 
 def deserialize(value, arg_type):
@@ -44,6 +43,15 @@ def serialize(value, arg_type):
         return float(value)
     elif arg_type == 'vector':
         return value.tolist()
+    elif type(arg_type) == dict and 'arrayOf' in arg_type:
+        ret = []
+        for output in value:
+            serialized_output = {}
+            for output_name, output_value in output.items():
+                serialized_output[output_name] = serialize(
+                    output_value, arg_type['arrayOf'][output_name])
+            ret.append(serialized_output)
+        return ret
 
 
 class RunwayServer(object):
