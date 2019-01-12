@@ -55,13 +55,13 @@ def serialize(value, arg_type):
 
 
 class RunwayServer(object):
-    def __init__(self, name):
+    def __init__(self):
         self.app = Flask(__name__)
         CORS(self.app)
 
         @self.app.route('/healthcheck')
         def healthcheck():
-            return jsonify(message=name + ' running')
+            return jsonify(message='Model running')
 
     def command(self, path, inputs=None, outputs=None):
         if inputs is None or outputs is None:

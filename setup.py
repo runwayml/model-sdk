@@ -7,7 +7,7 @@ except ImportError:
 
 setup(
     name='runway-python',
-    version='0.0.2',
+    version='0.0.3',
     description='Helper library for creating Runway models',
     author='Anastasis Germanidis',
     author_email='anastasis@runwayml.com',
@@ -17,7 +17,8 @@ setup(
     install_requires=[
         'Flask>=0.12.2',
         'Flask-Cors>=3.0.2',
-        'numpy>=1.15.1'
+        'numpy>=1.15.1',
+        'Pillow>=4.3.0'
     ],
     license="MIT"
 )
