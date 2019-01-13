@@ -1,3 +1,5 @@
+import base64
+import io
 import numpy as np
 from PIL import Image
 
@@ -15,7 +17,7 @@ def serialize_image(value):
         im_pil = value
     buffer = io.BytesIO()
     im_pil.save(buffer, format='JPEG')
-    return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue())
+    return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
 
 
 def deserialize(value, arg_type):

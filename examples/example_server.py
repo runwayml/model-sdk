@@ -6,7 +6,6 @@ model = RunwayModel()
 
 @model.command('example-command', inputs={'lowercase': 'text'}, outputs={'results': [{'uppercase': 'text'}]})
 def infer(model, input):
-    print(model)
     return {'results': [{'uppercase': input['lowercase'].upper()}]}
 
 

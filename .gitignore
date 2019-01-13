@@ -2,3 +2,5 @@ dist
 *pyc
 *.egg*
 build
+deploy.sh
+.vscode
