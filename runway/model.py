@@ -25,7 +25,8 @@ class RunwayModel(object):
 
     def parse_opts(self):
         parser = ArgumentParser()
-        parser.add_argument('--rw_setup_options', type=str, default='{}')
+        parser.add_argument('--rw_setup_options', type=str, default='{}', help='Pass options to the Runway model as a JSON string')
+        parser.add_argument('--debug', action='store_true', help='Activate debug mode (live reload)')
         args = parser.parse_args()
         return args
 
@@ -67,10 +68,17 @@ class RunwayModel(object):
         return decorator
 
     def run(self, host='0.0.0.0', port=8000, threaded=True):
+        print('Setting up model...')
         if self.setup_fn:
             setup_opts = json.loads(self.opts.rw_setup_options)
-            print('Setting up model...')
             self.model = self.setup_fn(**setup_opts)
-        http_server = WSGIServer((host, port), self.app)
-        print('Starting model server...')
-        http_server.serve_forever()
+        if self.opts.debug:
+            self.app.debug = True
+            self.app.run(host=host, port=port, debug=True)
+        else:
+            http_server = WSGIServer((host, port), self.app)
+            print('Starting model server...')
+            try:
+                http_server.serve_forever()
+            except KeyboardInterrupt:
+                print('Stopping server...')
