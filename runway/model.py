@@ -1,67 +1,32 @@
 import base64
 import io
-from PIL import Image
-import numpy as np
+import json
+from argparse import ArgumentParser
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from .exceptions import RunwayError, MissingInputException
+from .io import serialize, deserialize
 
-
-def deserialize_image(value):
-    image = value[value.find(",")+1:]
-    image = base64.decodestring(image.encode('utf8'))
-    return Image.open(io.BytesIO(image))
-
-
-def serialize_image(value):
-    if type(value) is np.ndarray:
-        im_pil = Image.fromarray(value)
-    elif type(value) is Image.Image:
-        im_pil = value
-    buffer = io.BytesIO()
-    im_pil.save(buffer, format='JPEG')
-    return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue())
-
-
-def deserialize(value, arg_type):
-    if arg_type == 'text':
-        return value
-    elif arg_type == 'image':
-        return deserialize_image(value)
-    elif arg_type == 'number':
-        return float(value)
-    elif arg_type == 'vector':
-        return np.array(value)
-
-
-def serialize(value, arg_type):
-    if arg_type == 'text':
-        return str(value)
-    elif arg_type == 'image':
-        return serialize_image(value)
-    elif arg_type == 'number':
-        return float(value)
-    elif arg_type == 'vector':
-        return value.tolist()
-    elif type(arg_type) == dict and 'arrayOf' in arg_type:
-        ret = []
-        for output in value:
-            serialized_output = {}
-            for output_name, output_value in output.items():
-                serialized_output[output_name] = serialize(
-                    output_value, arg_type['arrayOf'][output_name])
-            ret.append(serialized_output)
-        return ret
-
-
-class RunwayServer(object):
+class RunwayModel(object):
     def __init__(self):
+        self.setup_fn = None
+        self.model = None
         self.app = Flask(__name__)
         CORS(self.app)
 
         @self.app.route('/healthcheck')
         def healthcheck():
             return jsonify(message='Model running')
+
+    def parse_opts(self):
+        parser = ArgumentParser()
+        parser.add_argument('--rw_setup_options', type=str, default='{}')
+        args = parser.parse_args()
+        return json.loads(args.rw_setup_options)
+
+    def setup(self, fn):
+        self.setup_fn = fn
+        return fn
 
     def command(self, path, inputs=None, outputs=None):
         if inputs is None or outputs is None:
@@ -76,7 +41,7 @@ class RunwayServer(object):
                             raise MissingInputException(input_name)
                         input_dict[input_name] = deserialize(
                             input_dict[input_name], input_type)
-                    output_dict = fn(input_dict)
+                    output_dict = fn(self.model, input_dict)
                     for output_name, output_type in outputs.items():
                         output_dict[output_name] = serialize(
                             output_dict[output_name], output_type)
@@ -87,4 +52,7 @@ class RunwayServer(object):
         return decorator
 
     def run(self, host='0.0.0.0', port=8000, threaded=True):
+        if self.setup_fn:
+            opts = self.parse_opts()
+            self.model = self.setup_fn(opts)
         self.app.run(host=host, port=port, threaded=threaded)

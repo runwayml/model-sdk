@@ -1,13 +1,14 @@
-from runway import RunwayServer
+from runway import RunwayModel
 
 
-server = RunwayServer('Test Model')
+model = RunwayModel()
 
 
-@server.command('example-command', inputs={'lowercase': 'text'}, outputs={'results': {'arrayOf': {'uppercase': 'text'}}})
-def infer(input):
+@model.command('example-command', inputs={'lowercase': 'text'}, outputs={'results': [{'uppercase': 'text'}]})
+def infer(model, input):
+    print(model)
     return {'results': [{'uppercase': input['lowercase'].upper()}]}
 
 
 if __name__ == '__main__':
-    server.run()
+    model.run()
