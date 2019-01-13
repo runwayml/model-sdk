@@ -11,3 +11,9 @@ class MissingInputException(RunwayError):
     def __init__(self, name):
         super(MissingInputException, self).__init__()
         self.message = 'Missing input: %s.' % name
+
+
+class InferenceError(RunwayError):
+    def __init__(self, message):
+        super(InferenceError, self).__init__()
+        self.message = 'Inference error: %s' % message

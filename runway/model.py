@@ -1,9 +1,10 @@
 import json
+import datetime
 from argparse import ArgumentParser
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
-from .exceptions import RunwayError, MissingInputException
+from .exceptions import RunwayError, MissingInputException, InferenceError
 from .io import serialize, deserialize
 
 class RunwayModel(object):
@@ -17,7 +18,7 @@ class RunwayModel(object):
 
         @self.app.route('/healthcheck')
         def healthcheck():
-            return jsonify(message='Model running')
+            return jsonify(message='Model running', started=self.started)
 
         @self.app.route('/manifest')
         def manifest():
@@ -57,7 +58,10 @@ class RunwayModel(object):
                             raise MissingInputException(input_name)
                         input_dict[input_name] = deserialize(
                             input_dict[input_name], input_type)
-                    output_dict = fn(self.model, input_dict)
+                    try:
+                        output_dict = fn(self.model, input_dict)
+                    except Exception as err:
+                        raise InferenceError(repr(err))
                     for output_name, output_type in outputs.items():
                         output_dict[output_name] = serialize(
                             output_dict[output_name], output_type)
@@ -67,17 +71,18 @@ class RunwayModel(object):
             return fn
         return decorator
 
-    def run(self, host='0.0.0.0', port=8000, threaded=True):
+    def run(self, host='localhost', port=8000, threaded=True):
         print('Setting up model...')
         if self.setup_fn:
             setup_opts = json.loads(self.opts.rw_setup_options)
             self.model = self.setup_fn(**setup_opts)
+        print('Starting model server at http://{0}:{1}...'.format(host, port))
+        self.started = int(datetime.datetime.utcnow().strftime("%s"))
         if self.opts.debug:
             self.app.debug = True
             self.app.run(host=host, port=port, debug=True)
         else:
             http_server = WSGIServer((host, port), self.app)
-            print('Starting model server...')
             try:
                 http_server.serve_forever()
             except KeyboardInterrupt:
