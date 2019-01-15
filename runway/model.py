@@ -4,18 +4,21 @@ from argparse import ArgumentParser
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
-from .exceptions import RunwayError, MissingInputException, InferenceError
+from .exceptions import RunwayError, MissingInputException, InferenceError, UnknownCommandError
 from .io import serialize, deserialize
 
 class RunwayModel(object):
     def __init__(self):
         self.setup_fn = None
-        self.commands = []
+        self.commands = {}
+        self.command_fns = {}
         self.model = None
         self.opts = self.parse_opts()
         self.app = Flask(__name__)
         CORS(self.app)
+        self.define_routes()
 
+    def define_routes(self):
         @self.app.route('/healthcheck')
         def healthcheck():
             return jsonify(message='Model running', started=self.started)
@@ -23,6 +26,43 @@ class RunwayModel(object):
         @self.app.route('/manifest')
         def manifest():
             return jsonify(commands=self.commands)
+
+        @self.app.route('/<command_name>', methods=['POST'])
+        def command(command_name):
+            try:
+                try:
+                    command_fn = self.command_fns[command_name]
+                    inputs = self.commands[command_name]['inputs']
+                    outputs = self.commands[command_name]['outputs']
+                except KeyError:
+                    raise UnknownCommandError(command_name)
+                input_dict = request.json
+                for input_name, input_type in inputs.items():
+                    if input_name not in input_dict:
+                        raise MissingInputException(input_name)
+                    input_dict[input_name] = deserialize(
+                        input_dict[input_name], input_type)
+                try:
+                    output_dict = command_fn(self.model, input_dict)
+                except Exception as err:
+                    raise InferenceError(repr(err))
+                for output_name, output_type in outputs.items():
+                    output_dict[output_name] = serialize(
+                        output_dict[output_name], output_type)
+                return jsonify(output_dict)
+            except RunwayError as err:
+                return jsonify(err.to_response())
+
+        @self.app.route('/usage/<command_name>')
+        def usage(command_name):
+            try:
+                try:
+                    command = self.commands[command_name]
+                except KeyError:
+                    raise UnknownCommandError(command_name)
+                return jsonify(command)
+            except RunwayError as err:
+                return jsonify(err.to_response())
 
     def parse_opts(self):
         parser = ArgumentParser()
@@ -38,36 +78,10 @@ class RunwayModel(object):
     def command(self, name, inputs=None, outputs=None):
         if inputs is None or outputs is None:
             raise Exception('You need to provide inputs and outputs for the command')
-        command_info = dict(
-            name=name,
-            inputs=inputs,
-            outputs=outputs
-        )
-        self.commands.append(command_info)
+        command_info = dict(inputs=inputs, outputs=outputs)
+        self.commands[name] = command_info
         def decorator(fn):
-            @self.app.route('/' + name + '/usage')
-            def usage_endpoint():
-                return jsonify(command_info)
-
-            @self.app.route('/' + name, methods=['POST'])
-            def infer_endpoint():
-                try:
-                    input_dict = request.json
-                    for input_name, input_type in inputs.items():
-                        if input_name not in input_dict:
-                            raise MissingInputException(input_name)
-                        input_dict[input_name] = deserialize(
-                            input_dict[input_name], input_type)
-                    try:
-                        output_dict = fn(self.model, input_dict)
-                    except Exception as err:
-                        raise InferenceError(repr(err))
-                    for output_name, output_type in outputs.items():
-                        output_dict[output_name] = serialize(
-                            output_dict[output_name], output_type)
-                    return jsonify(output_dict)
-                except RunwayError as err:
-                    return jsonify(err.to_response())
+            self.command_fns[name] = fn
             return fn
         return decorator
 

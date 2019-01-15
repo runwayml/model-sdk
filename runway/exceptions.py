@@ -17,3 +17,9 @@ class InferenceError(RunwayError):
     def __init__(self, message):
         super(InferenceError, self).__init__()
         self.message = 'Inference error: %s' % message
+
+
+class UnknownCommandError(RunwayError):
+    def __init__(self, name):
+        super(UnknownCommandError, self).__init__()
+        self.message = 'Unknown command: %s.' % name
