@@ -1,3 +1,5 @@
+import os
+import logging
 import json
 import datetime
 from argparse import ArgumentParser
@@ -66,7 +68,7 @@ class RunwayModel(object):
 
     def parse_opts(self):
         parser = ArgumentParser()
-        parser.add_argument('--rw_setup_options', type=str, default='{}', help='Pass options to the Runway model as a JSON string')
+        parser.add_argument('--rw_model_options', type=str, default=os.getenv('RW_MODEL_OPTIONS', '{}'), help='Pass options to the Runway model as a JSON string')
         parser.add_argument('--debug', action='store_true', help='Activate debug mode (live reload)')
         args = parser.parse_args()
         return args
@@ -93,6 +95,7 @@ class RunwayModel(object):
         print('Starting model server at http://{0}:{1}...'.format(host, port))
         self.started = int(datetime.datetime.utcnow().strftime("%s"))
         if self.opts.debug:
+            logging.basicConfig(level=logging.DEBUG)
             self.app.debug = True
             self.app.run(host=host, port=port, debug=True)
         else:

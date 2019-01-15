@@ -1,5 +1,9 @@
+import sys
 import base64
-import io
+if sys.version_info[0] < 3:
+    import cStringIO
+else:
+    import io
 import numpy as np
 from PIL import Image
 
@@ -15,7 +19,10 @@ def serialize_image(value):
         im_pil = Image.fromarray(value)
     elif type(value) is Image.Image:
         im_pil = value
-    buffer = io.BytesIO()
+    if sys.version_info[0] < 3:
+        buffer = cStringIO.StringIO()
+    else:
+        buffer = io.BytesIO()
     im_pil.save(buffer, format='JPEG')
     return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
 
