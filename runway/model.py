@@ -51,7 +51,7 @@ class RunwayModel(object):
                         output_dict[output_name], output_type)
                 return jsonify(output_dict)
             except RunwayError as err:
-                return jsonify(err.to_response())
+                return jsonify(err.to_response()), err.code
 
         @self.app.route('/usage/<command_name>')
         def usage(command_name):
@@ -85,7 +85,7 @@ class RunwayModel(object):
             return fn
         return decorator
 
-    def run(self, host='localhost', port=8000, threaded=True):
+    def run(self, host='0.0.0.0', port=8000, threaded=True):
         print('Setting up model...')
         if self.setup_fn:
             setup_opts = json.loads(self.opts.rw_setup_options)

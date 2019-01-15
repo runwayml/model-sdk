@@ -25,8 +25,10 @@ def deserialize(value, arg_type):
         return value
     elif arg_type == 'image':
         return deserialize_image(value)
-    elif arg_type == 'number':
+    elif arg_type == 'float':
         return float(value)
+    elif arg_type == 'integer':
+        return int(value)
     elif arg_type == 'vector':
         return np.array(value)
     return value
@@ -37,7 +39,9 @@ def serialize(value, arg_type):
         return str(value)
     elif arg_type == 'image':
         return serialize_image(value)
-    elif arg_type == 'number':
+    elif arg_type == 'integer':
+        return int(value)
+    elif arg_type == 'float':
         return float(value)
     elif arg_type == 'vector':
         return value.tolist()
