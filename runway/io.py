@@ -8,6 +8,12 @@ import numpy as np
 from PIL import Image
 
 
+def try_cast_np_scalar(value):
+    if type(value).__module__ == 'numpy' and np.isscalar(value):
+        return value.item()
+    return value
+
+
 def deserialize_image(value):
     image = value[value.find(",")+1:]
     image = base64.decodestring(image.encode('utf8'))
@@ -33,9 +39,9 @@ def deserialize(value, arg_type):
     elif arg_type == 'image':
         return deserialize_image(value)
     elif arg_type == 'float':
-        return float(value)
+        return float(try_cast_np_scalar(value))
     elif arg_type == 'integer':
-        return int(value)
+        return int(try_cast_np_scalar(value))
     elif arg_type == 'vector':
         return np.array(value)
     return value

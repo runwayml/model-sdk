@@ -90,7 +90,7 @@ class RunwayModel(object):
     def run(self, host='0.0.0.0', port=8000, threaded=True):
         print('Setting up model...')
         if self.setup_fn:
-            setup_opts = json.loads(self.opts.rw_setup_options)
+            setup_opts = json.loads(self.opts.rw_model_options)
             self.model = self.setup_fn(**setup_opts)
         print('Starting model server at http://{0}:{1}...'.format(host, port))
         self.started = int(datetime.datetime.utcnow().strftime("%s"))
