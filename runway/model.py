@@ -6,12 +6,13 @@ from argparse import ArgumentParser
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
-from .exceptions import RunwayError, MissingInputException, InferenceError, UnknownCommandError
+from .exceptions import RunwayError, MissingInputException, MissingOptionException, InferenceError, UnknownCommandError
 from .io import serialize, deserialize
 
 class RunwayModel(object):
     def __init__(self):
         self.setup_fn = None
+        self.options = {}
         self.commands = {}
         self.command_fns = {}
         self.model = None
@@ -27,7 +28,7 @@ class RunwayModel(object):
 
         @self.app.route('/manifest')
         def manifest():
-            return jsonify(commands=self.commands)
+            return jsonify(options=self.options, commands=self.commands)
 
         @self.app.route('/<command_name>', methods=['POST'])
         def command(command_name):
@@ -73,9 +74,12 @@ class RunwayModel(object):
         args = parser.parse_args()
         return args
 
-    def setup(self, fn):
-        self.setup_fn = fn
-        return fn
+    def setup(self, options=None):
+        def decorator(fn):
+            self.options = options
+            self.setup_fn = fn
+            return fn
+        return decorator
 
     def command(self, name, inputs=None, outputs=None):
         if inputs is None or outputs is None:
@@ -91,7 +95,11 @@ class RunwayModel(object):
         print('Setting up model...')
         if self.setup_fn:
             setup_opts = json.loads(self.opts.rw_model_options)
-            self.model = self.setup_fn(**setup_opts)
+            for opt_name, opt_type in self.options.items():
+                if opt_name not in setup_opts:
+                    raise MissingOptionException(opt_name)
+                setup_opts[opt_name] = deserialize(setup_opts[opt_name], opt_type)
+            self.model = self.setup_fn(setup_opts)
         print('Starting model server at http://{0}:{1}...'.format(host, port))
         self.started = int(datetime.datetime.utcnow().strftime("%s"))
         if self.opts.debug:

@@ -8,6 +8,13 @@ class RunwayError(Exception):
         return {'error': self.message}
 
 
+class MissingOptionException(RunwayError):
+    def __init__(self, name):
+        super(MissingOptionException, self).__init__()
+        self.message = 'Missing option: %s.' % name
+        self.code = 400
+
+
 class MissingInputException(RunwayError):
     def __init__(self, name):
         super(MissingInputException, self).__init__()
