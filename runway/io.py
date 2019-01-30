@@ -6,6 +6,7 @@ else:
     import io
 import numpy as np
 from PIL import Image
+from .utils import is_url, download_to_temp_dir
 
 
 def try_cast_np_scalar(value):
@@ -17,7 +18,11 @@ def try_cast_np_scalar(value):
 def deserialize_image(value):
     image = value[value.find(",")+1:]
     image = base64.decodestring(image.encode('utf8'))
-    return Image.open(io.BytesIO(image))
+    if sys.version_info[0] < 3:
+        buffer = cStringIO.StringIO(image)
+    else:
+        buffer = io.BytesIO(image)
+    return Image.open(buffer)
 
 
 def serialize_image(value):
@@ -44,6 +49,9 @@ def deserialize(value, arg_type):
         return int(try_cast_np_scalar(value))
     elif arg_type == 'vector':
         return np.array(value)
+    elif arg_type == 'checkpoint':
+        if is_url(value):
+            return download_to_temp_dir(value)
     return value
 
 
