@@ -1,9 +1,9 @@
 import sys
 import base64
 if sys.version_info[0] < 3:
-    import cStringIO
+    from cStringIO import StringIO as IO
 else:
-    import io
+    from io import BytesIO as IO
 import numpy as np
 from PIL import Image
 from .utils import is_url, download_to_temp_dir
@@ -18,10 +18,7 @@ def try_cast_np_scalar(value):
 def deserialize_image(value):
     image = value[value.find(",")+1:]
     image = base64.decodestring(image.encode('utf8'))
-    if sys.version_info[0] < 3:
-        buffer = cStringIO.StringIO(image)
-    else:
-        buffer = io.BytesIO(image)
+    buffer = IO(image)
     return Image.open(buffer)
 
 
@@ -30,10 +27,7 @@ def serialize_image(value):
         im_pil = Image.fromarray(value)
     elif type(value) is Image.Image:
         im_pil = value
-    if sys.version_info[0] < 3:
-        buffer = cStringIO.StringIO()
-    else:
-        buffer = io.BytesIO()
+    buffer = IO()
     im_pil.save(buffer, format='JPEG')
     return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
 

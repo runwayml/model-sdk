@@ -1,3 +1,6 @@
+import sys
+import traceback
+
 class RunwayError(Exception):
     def __init__(self):
         super(RunwayError, self).__init__()
@@ -5,7 +8,9 @@ class RunwayError(Exception):
         self.code = 500
 
     def to_response(self):
-        return {'error': self.message}
+        _, _, tb = sys.exc_info()
+        formatted_tb = ''.join(traceback.format_tb(tb))
+        return {'error': self.message, 'traceback': formatted_tb}
 
 
 class MissingOptionException(RunwayError):
