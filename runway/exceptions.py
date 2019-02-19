@@ -39,3 +39,10 @@ class UnknownCommandError(RunwayError):
         super(UnknownCommandError, self).__init__()
         self.message = 'Unknown command: %s.' % name
         self.code = 404
+
+
+class SetupError(RunwayError):
+    def __init__(self, message):
+        super(SetupError, self).__init__()
+        self.message = 'Setup error: %s' % message
+        self.code = 500

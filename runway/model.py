@@ -8,46 +8,53 @@ import json
 from flask import Flask, request
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
-from .exceptions import RunwayError, MissingInputException, MissingOptionException, InferenceError, UnknownCommandError
+from .exceptions import RunwayError, MissingInputException, MissingOptionException, InferenceError, UnknownCommandError, SetupError
 from .io import serialize, deserialize
-from .utils import to_long_spec, gzipped
-
-
-__version__ = '0.0.37'
+from .utils import gzipped
 
 
 class RunwayModel(object):
     def __init__(self):
+        self.options = {}
         self.setup_fn = None
-        self.options = None
         self.commands = {}
         self.command_fns = {}
         self.model = None
-        self.accessed = None
+        self.running_status = 'STARTING'
         self.opts = self.parse_opts()
         self.app = Flask(__name__)
         CORS(self.app)
         self.define_routes()
 
     def define_routes(self):
-        @self.app.route('/healthcheck')
-        def healthcheck():
-            return 'ok'
-
         @self.app.route('/')
         def manifest():
-            return json.dumps(
-                startedAt=self.started,
-                lastAccessedAt=self.accessed,
-                apiVersion=__version__,
-                modelOptions=json.loads(self.opts.rw_model_options),
+            return json.dumps(dict(
+                options=self.options,
                 commands=self.commands
-            )
+            ))
+
+        @self.app.route('/healthcheck')
+        def healthcheck_route():
+            return self.running_status
+
+        @self.app.route('/setup', methods=['POST'])
+        def setup_route():
+            data = request.get_data()
+            opts = json.loads(data)
+            try:
+                self.setup_model(opts)
+                return json.dumps(dict(success=True))
+            except RunwayError as err:
+                return json.dumps(err.to_response()), err.code
+
+        @self.app.route('/setup', methods=['GET'])
+        def setup_options_route():
+            return json.dumps(self.options)
 
         @gzipped
         @self.app.route('/<command_name>', methods=['POST'])
-        def command(command_name):
-            self.started = datetime.datetime.utcnow().isoformat()
+        def command_route(command_name):
             try:
                 try:
                     command_fn = self.command_fns[command_name]
@@ -74,20 +81,20 @@ class RunwayModel(object):
                 return json.dumps(err.to_response()), err.code
 
         @self.app.route('/<command_name>', methods=['GET'])
-        def usage(command_name):
+        def usage_route(command_name):
             try:
                 try:
                     command = self.commands[command_name]
                 except KeyError:
                     raise UnknownCommandError(command_name)
-                return json.dumps(to_long_spec(command))
+                return json.dumps(command)
             except RunwayError as err:
                 return json.dumps(err.to_response())
 
     def parse_opts(self):
         parser = ArgumentParser()
         parser.add_argument('--host', type=str, default='0.0.0.0', help='Host for the model server')
-        parser.add_argument('--port', type=int, default=8000, help='Port for the model server')
+        parser.add_argument('--port', type=int, default=9000, help='Port for the model server')
         parser.add_argument('--rw_model_options', type=str, default=os.getenv(
             'RW_MODEL_OPTIONS', '{}'), help='Pass options to the Runway model as a JSON string')
         parser.add_argument('--debug', action='store_true',
@@ -99,7 +106,7 @@ class RunwayModel(object):
 
     def setup(self, decorated_fn=None, options=None):
         if decorated_fn:
-            self.options = None
+            self.options = {}
             self.setup_fn = decorated_fn
         else:
             def decorator(fn):
@@ -110,15 +117,27 @@ class RunwayModel(object):
 
     def command(self, name, inputs=None, outputs=None):
         if inputs is None or outputs is None:
-            raise Exception(
-                'You need to provide inputs and outputs for the command')
+            raise Exception('You need to provide inputs and outputs for the command')
         command_info = dict(inputs=inputs, outputs=outputs)
         self.commands[name] = command_info
-
         def decorator(fn):
             self.command_fns[name] = fn
             return fn
         return decorator
+
+    def setup_model(self, opts):
+        try:
+            self.running_status = 'STARTING'
+            if self.setup_fn and self.options:
+                for name, value in opts.items():
+                    opts[name] = deserialize(value, self.options[name])
+                self.model = self.setup_fn(opts)
+            elif self.setup_fn:
+                self.model = self.setup_fn()
+            self.running_status = 'RUNNING'
+        except Exception as err:
+            self.running_status = 'FAILED'
+            raise SetupError(repr(err))
 
     def run(self):
         host = self.opts.host
@@ -127,26 +146,14 @@ class RunwayModel(object):
             print(json.dumps(dict(options=self.options, commands=self.commands)))
             return
         print('Setting up model...')
-        if self.setup_fn:
-            try:
-                setup_opts = json.loads(self.opts.rw_model_options)
-                if self.options:
-                    for opt_name, opt_type in self.options.items():
-                        if opt_name not in setup_opts:
-                            raise MissingOptionException(opt_name)
-                    setup_opts[opt_name] = deserialize(
-                            setup_opts[opt_name], opt_type)
-                    self.model = self.setup_fn(setup_opts)
-                else:
-                    self.model = self.setup_fn()
-            except Exception as err:
-                print('Encountered error during setup:\n %s' % repr(err))
-                _, _, tb = sys.exc_info()
-                formatted_tb = ''.join(traceback.format_tb(tb))
-                print(formatted_tb)
-                sys.exit(1)
+        try:
+            self.setup_model(json.loads(self.opts.rw_model_options))
+        except RunwayError as err:
+            resp = err.to_response()
+            print(resp['error'])
+            print(resp['traceback'])
+            sys.exit(1)
         print('Starting model server at http://{0}:{1}...'.format(host, port))
-        self.started = datetime.datetime.utcnow().isoformat()
         if self.opts.debug:
             logging.basicConfig(level=logging.DEBUG)
             self.app.debug = True
