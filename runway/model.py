@@ -21,7 +21,6 @@ class RunwayModel(object):
         self.command_fns = {}
         self.model = None
         self.running_status = 'STARTING'
-        self.opts = self.parse_opts()
         self.app = Flask(__name__)
         CORS(self.app)
         self.define_routes()
@@ -40,8 +39,7 @@ class RunwayModel(object):
 
         @self.app.route('/setup', methods=['POST'])
         def setup_route():
-            data = request.get_data()
-            opts = json.loads(data)
+            opts = request.json
             try:
                 self.setup_model(opts)
                 return json.dumps(dict(success=True))
@@ -52,7 +50,6 @@ class RunwayModel(object):
         def setup_options_route():
             return json.dumps(self.options)
 
-        @gzipped
         @self.app.route('/<command_name>', methods=['POST'])
         def command_route(command_name):
             try:
@@ -62,8 +59,7 @@ class RunwayModel(object):
                     outputs = self.commands[command_name]['outputs']
                 except KeyError:
                     raise UnknownCommandError(command_name)
-                data = request.get_data()
-                input_dict = json.loads(data)
+                input_dict = request.json
                 for input_name, input_type in inputs.items():
                     if input_name not in input_dict:
                         raise MissingInputException(input_name)
@@ -90,19 +86,6 @@ class RunwayModel(object):
                 return json.dumps(command)
             except RunwayError as err:
                 return json.dumps(err.to_response())
-
-    def parse_opts(self):
-        parser = ArgumentParser()
-        parser.add_argument('--host', type=str, default='0.0.0.0', help='Host for the model server')
-        parser.add_argument('--port', type=int, default=9000, help='Port for the model server')
-        parser.add_argument('--rw_model_options', type=str, default=os.getenv(
-            'RW_MODEL_OPTIONS', '{}'), help='Pass options to the Runway model as a JSON string')
-        parser.add_argument('--debug', action='store_true',
-                            help='Activate debug mode (live reload)')
-        parser.add_argument('--manifest', action='store_true',
-                            help='Print model manifest')
-        args = parser.parse_args()
-        return args
 
     def setup(self, decorated_fn=None, options=None):
         if decorated_fn:
@@ -140,21 +123,31 @@ class RunwayModel(object):
             raise SetupError(repr(err))
 
     def run(self):
-        host = self.opts.host
-        port = self.opts.port
-        if self.opts.manifest:
+        parser = ArgumentParser()
+        parser.add_argument('--host', type=str, default='0.0.0.0', help='Host for the model server')
+        parser.add_argument('--port', type=int, default=9000, help='Port for the model server')
+        parser.add_argument('--rw_model_options', type=str, default=os.getenv(
+            'RW_MODEL_OPTIONS', '{}'), help='Pass options to the Runway model as a JSON string')
+        parser.add_argument('--debug', action='store_true',
+                            help='Activate debug mode (live reload)')
+        parser.add_argument('--manifest', action='store_true',
+                            help='Print model manifest')
+        args = parser.parse_args()
+        host = args.host
+        port = args.port
+        if args.manifest:
             print(json.dumps(dict(options=self.options, commands=self.commands)))
             return
         print('Setting up model...')
         try:
-            self.setup_model(json.loads(self.opts.rw_model_options))
+            self.setup_model(json.loads(args.rw_model_options))
         except RunwayError as err:
             resp = err.to_response()
             print(resp['error'])
             print(resp['traceback'])
             sys.exit(1)
         print('Starting model server at http://{0}:{1}...'.format(host, port))
-        if self.opts.debug:
+        if args.debug:
             logging.basicConfig(level=logging.DEBUG)
             self.app.debug = True
             self.app.run(host=host, port=port, debug=True, threaded=True)
