@@ -46,3 +46,10 @@ class SetupError(RunwayError):
         super(SetupError, self).__init__()
         self.message = 'Setup error: %s' % message
         self.code = 500
+
+
+class MissingArgumentError(RunwayError):
+    def __init__(self, arg):
+        super(SetupError, self).__init__()
+        self.message = 'Missing argument: %s' % arg
+        self.code = 500

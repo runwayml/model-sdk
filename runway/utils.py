@@ -22,17 +22,12 @@ URL_REGEX = re.compile(
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 
-def to_long_spec(spec):
-    long_spec = []
-    for key, value in spec.items():
-        if type(value) == str:
-            value = {'name': key, 'type': value}
-        elif type(value) == list:
-            value = {'name': key, 'type': {'arrayOf': to_long_spec(value[0])}}
-        elif type(value) == dict:
-            value = {'name': key, 'type': to_long_spec(value)}
-        long_spec.append(value)
-    return long_spec
+def serialize_command(cmd):
+    ret = {}
+    ret['name'] = cmd['name']
+    ret['inputs'] = [inp.to_dict() for inp in cmd['inputs']]
+    ret['outputs'] = [inp.to_dict() for inp in cmd['outputs']]
+    return ret
 
 
 def is_url(path):
@@ -87,3 +82,9 @@ def gzipped(f):
         return f(*args, **kwargs)
 
     return view_func
+
+
+def try_cast_np_scalar(value):
+    if type(value).__module__ == 'numpy' and np.isscalar(value):
+        return value.item()
+    return value

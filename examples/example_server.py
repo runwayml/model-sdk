@@ -1,18 +1,20 @@
-from runway import RunwayModel
+import runway
+from runway.data_types import text, number, array
+
+@runway.setup(options={'seed': number(default=0, max=5, step=1)})
+def setup(options):
+    print(options['seed'])
 
 
-model = RunwayModel()
+@runway.command('lower2upper', inputs=[array(text)], outputs=[array(text)])
+def lower2upper(model, texts):
+    return [text.upper() for text in texts]
 
 
-@model.command('lower2upper', inputs={'lowercase': 'text'}, outputs={'results': [{'uppercase': 'text'}]})
-def infer(model, input):
-    return {'results': [{'uppercase': input['lowercase'].upper()}]}
-
-
-@model.command('upper2lower', inputs={'uppercase': 'text'}, outputs={'results': [{'lowercase': 'text'}]})
-def infer(model, input):
-    return {'results': [{'lowercase': input['uppercase'].lower()}]}
+@runway.command('upper2lower', inputs=[text], outputs=[text])
+def upper2lower(model, text):
+    return text.lower()
 
 
 if __name__ == '__main__':
-    model.run()
+    runway.run()
