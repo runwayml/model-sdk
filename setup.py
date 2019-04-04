@@ -7,9 +7,9 @@ except ImportError:
 
 setup(
     name='runway-python',
-    version='0.0.50',
+    version='0.0.55',
     description='Helper library for creating Runway models',
-    author='Anastasis Germanidis',
+    author='Runway AI, Inc.',
     author_email='anastasis@runwayml.com',
     url='https://github.com/runwayml/python-sdk',
     packages=['runway'],

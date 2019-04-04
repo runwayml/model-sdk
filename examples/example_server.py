@@ -1,19 +1,14 @@
 import runway
-from runway.data_types import text, number, array
+from runway.data_types import text
 
-@runway.setup(options={'seed': number(default=0, max=5, step=1)})
+@runway.setup(options={'suffix': text})
 def setup(options):
-    print(options['seed'])
+    return options['suffix']
 
 
-@runway.command('lower2upper', inputs=[array(text)], outputs=[array(text)])
-def lower2upper(model, texts):
-    return [text.upper() for text in texts]
-
-
-@runway.command('upper2lower', inputs=[text], outputs=[text])
-def upper2lower(model, text):
-    return text.lower()
+@runway.command('lower2upper', inputs={'input': text}, outputs={'output': text})
+def lower2upper(suffix, inputs):
+    return {'output': inputs['input'].upper() + suffix}
 
 
 if __name__ == '__main__':

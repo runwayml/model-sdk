@@ -13,17 +13,24 @@ class RunwayError(Exception):
         return {'error': self.message, 'traceback': formatted_tb}
 
 
-class MissingOptionException(RunwayError):
+class MissingOptionError(RunwayError):
     def __init__(self, name):
-        super(MissingOptionException, self).__init__()
+        super(MissingOptionError, self).__init__()
         self.message = 'Missing option: %s.' % name
         self.code = 400
 
 
-class MissingInputException(RunwayError):
+class MissingInputError(RunwayError):
     def __init__(self, name):
-        super(MissingInputException, self).__init__()
+        super(MissingInputError, self).__init__()
         self.message = 'Missing input: %s.' % name
+        self.code = 400
+
+
+class InvalidInputError(RunwayError):
+    def __init__(self, name):
+        super(MissingInputError, self).__init__()
+        self.message = 'Invalid input: %s.' % name
         self.code = 400
 
 

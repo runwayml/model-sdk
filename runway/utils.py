@@ -1,5 +1,6 @@
 import tempfile
 import tarfile
+import inspect
 import re
 import wget
 import os
@@ -35,7 +36,7 @@ def is_url(path):
 
 
 def download_to_temp_dir(url):
-    print('Downloading checkpoint: %s' % url)
+    print('Downloading file: %s' % url)
     tmp_path = tempfile.mkdtemp()
     fname = wget.download(url)
     tar = tarfile.open(fname, "r:gz")
@@ -88,3 +89,9 @@ def try_cast_np_scalar(value):
     if type(value).__module__ == 'numpy' and np.isscalar(value):
         return value.item()
     return value
+
+
+def cast_to_obj(cls_or_obj):
+    if inspect.isclass(cls_or_obj):
+        return cls_or_obj()
+    return cls_or_obj

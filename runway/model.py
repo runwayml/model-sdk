@@ -1,6 +1,5 @@
 import os
 import sys
-import inspect
 import logging
 import datetime
 import traceback
@@ -9,11 +8,10 @@ import json
 from flask import Flask, request
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
-from .exceptions import RunwayError, MissingInputException, MissingOptionException, \
-                        InferenceError, UnknownCommandError, SetupError
+from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
+    InferenceError, UnknownCommandError, SetupError
 from .data_types import *
-from .utils import gzipped, serialize_command
-
+from .utils import gzipped, serialize_command, cast_to_obj
 
 class RunwayModel(object):
     def __init__(self):
@@ -57,27 +55,33 @@ class RunwayModel(object):
             try:
                 try:
                     command_fn = self.command_fns[command_name]
-                    inputs = self.commands[command_name]['inputs']
-                    outputs = self.commands[command_name]['outputs']
                 except KeyError:
                     raise UnknownCommandError(command_name)
+                inputs = self.commands[command_name]['inputs']
+                outputs = self.commands[command_name]['outputs']
                 input_dict = request.json
-                deserialized_inputs = []
+                deserialized_inputs = {}
                 for inp in inputs:
                     name = inp.name
-                    if getattr(inp, 'default', None) is None and name not in input_dict:
-                        raise MissingInputException(name)
-                    deserialized_inputs.append(inp.deserialize(input_dict[name]) or getattr(inp, 'default', None))
+                    if name not in input_dict:
+                        raise MissingInputError(name)
+                    deserialized_inputs[name] = inp.deserialize(input_dict[name])
                 try:
-                    results = command_fn(self.model, *deserialized_inputs)
-                    results = (results,) if type(results) != tuple else results
+                    results = command_fn(self.model, deserialized_inputs)
+                    if type(results) != dict:
+                        name = outputs[0].name
+                        value = results
+                        results = {}
+                        results[name] = value
                 except Exception as err:
                     raise InferenceError(repr(err))
+
                 serialized_outputs = {}
-                for index, out in enumerate(outputs):
+                for out in outputs:
                     name = out.to_dict()['name']
-                    serialized_outputs[name] = out.serialize(results[index])
+                    serialized_outputs[name] = out.serialize(results[name])
                 return json.dumps(serialized_outputs).encode('utf8')
+
             except RunwayError as err:
                 return json.dumps(err.to_response()), err.code
 
@@ -100,27 +104,41 @@ class RunwayModel(object):
             def decorator(fn):
                 self.options = []
                 for name, opt in options.items():
+                    opt = cast_to_obj(opt)
                     opt.name = name
                     self.options.append(opt)
                 self.setup_fn = fn
                 return fn
             return decorator
 
-    def command(self, name, inputs=[], outputs=[]):
-        if len(inputs) == 0 or len(outputs) == 0:
+    def command(self, name, inputs={}, outputs={}):
+        if len(inputs.values()) == 0 or len(outputs.values()) == 0:
             raise Exception('You need to provide at least one input and output for the command')
-        def cast_to_obj(cls_or_obj):
-            if inspect.isclass(cls_or_obj): return cls_or_obj()
-            return cls_or_obj
+
+        inputs_as_list = []
+        for input_name, inp in inputs.items():
+            inp_obj = cast_to_obj(inp)
+            inp_obj.name = input_name
+            inputs_as_list.append(inp_obj)
+
+        outputs_as_list = []
+        for output_name, out in outputs.items():
+            out_obj = cast_to_obj(out)
+            out_obj.name = output_name
+            outputs_as_list.append(out_obj)
+            
         command_info = dict(
             name=name,
-            inputs=[cast_to_obj(inp) for inp in inputs],
-            outputs=[cast_to_obj(out) for out in outputs]
+            inputs=inputs_as_list,
+            outputs=outputs_as_list
         )
+
         self.commands[name] = command_info
+
         def decorator(fn):
             self.command_fns[name] = fn
             return fn
+
         return decorator
 
     def setup_model(self, opts):
@@ -129,26 +147,51 @@ class RunwayModel(object):
             deserialized_opts = {}
             for opt in self.options:
                 name = opt.name
+                opt = cast_to_obj(opt)
+                opt.name = name
                 if name in opts:
                     deserialized_opts[name] = opt.deserialize(opts[name])
                 elif getattr(opt, 'default', None) is not None:
                     deserialized_opts[name] = opt.default
                 else:
-                    raise MissingOptionException(name)
+                    raise MissingOptionError(name)
             self.model = self.setup_fn(deserialized_opts)
         elif self.setup_fn:
             self.model = self.setup_fn()
         self.running_status = 'RUNNING'
-            
+
     def run(self):
         parser = ArgumentParser()
-        parser.add_argument('--host', type=str, default='0.0.0.0', help='Host for the model server')
-        parser.add_argument('--port', type=int, default=8000, help='Port for the model server')
-        parser.add_argument('--rw_model_options', type=str, default=os.getenv(
-            'RW_MODEL_OPTIONS', '{}'), help='Pass options to the Runway model as a JSON string')
-        parser.add_argument('--debug', action='store_true', help='Activate debug mode (live reload)')
-        parser.add_argument('--meta', action='store_true', help='Print model manifest')
-                            
+        parser.add_argument(
+            '--host',
+            type=str,
+            default=os.getenv('RW_HOST', '0.0.0.0'),
+            help='Host for the model server'
+        )
+        parser.add_argument(
+            '--port',
+            type=int,
+            default=int(os.getenv('RW_PORT', '8000')),
+            help='Port for the model server'
+        )
+        parser.add_argument(
+            '--rw_model_options',
+            type=str,
+            default=os.getenv('RW_MODEL_OPTIONS', '{}'),
+            help='Pass options to the Runway model as a JSON string'
+        )
+        parser.add_argument(
+            '--debug',
+            action='store_true',
+            default=os.getenv('RW_DEBUG', '0') == '1',
+            help='Activate debug mode (live reload)'
+        )
+        parser.add_argument(
+            '--meta',
+            default=os.getenv('RW_META', '0') == '1',
+            action='store_true',
+            help='Print model manifest'
+        )
         args = parser.parse_args()
         host = args.host
         port = args.port

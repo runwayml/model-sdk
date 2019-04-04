@@ -10,7 +10,7 @@ else:
 import numpy as np
 from PIL import Image
 from .utils import is_url, download_to_temp_dir, try_cast_np_scalar
-from .exceptions import MissingArgumentError
+from .exceptions import MissingArgumentError, InvalidInputError
 
 
 class any(object):
@@ -58,13 +58,15 @@ class array(object):
 
 
 class image(object):
-    def __init__(self, name=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None):
+    def __init__(self, name=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
         self.name = name or 'image'
         self.channels = channels
         self.min_width = min_width
         self.min_height = min_height
         self.max_width = max_width
         self.max_height = max_height
+        self.width = width
+        self.height = height
 
     def deserialize(self, value):
         image = value[value.find(",")+1:]
@@ -90,6 +92,8 @@ class image(object):
         if self.max_width: ret['maxHeight'] = self.max_width
         if self.min_height: ret['minHeight'] = self.min_height
         if self.max_height: ret['maxHeight'] = self.max_height
+        if self.width: ret['width'] = self.width
+        if self.height: ret['height'] = self.height
         return ret
 
 
@@ -122,9 +126,11 @@ class category(object):
         if choices is None or len(choices) == 0: raise MissingArgumentError('choices')
         self.name = name or 'category'
         self.choices = choices
-        self.default = default or self.choies[0]
+        self.default = default or self.choices[0]
 
     def deserialize(self, value):
+        if value not in self.choices:
+            raise InvalidInputError(self.name)
         return value
 
     def serialize(self, value):
@@ -148,10 +154,10 @@ class number(object):
         self.step = step
 
     def deserialize(self, value):
-        return try_cast_np_scalar(value)
+        return value
 
     def serialize(self, value):
-        return value
+        return try_cast_np_scalar(value)
     
     def to_dict(self):
         ret = {}
@@ -187,9 +193,9 @@ class text(object):
         return ret
 
 
-class checkpoint(object):
+class file(object):
     def __init__(self, name=None, is_folder=False):
-        self.name = name or 'checkpoint'
+        self.name = name or 'file'
         self.is_folder = is_folder
 
     def deserialize(self, value):
@@ -202,7 +208,7 @@ class checkpoint(object):
 
     def to_dict(self):
         ret = {}
-        ret['type'] = 'checkpoint'
+        ret['type'] = 'file'
         ret['name'] = self.name
         if self.is_folder: ret['isFolder'] = self.is_folder
         return ret
