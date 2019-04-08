@@ -14,6 +14,10 @@ from .data_types import *
 from .utils import gzipped, serialize_command, cast_to_obj
 
 class RunwayModel(object):
+    """A Runway Model server. A singleton instance of this class is created automatically
+       when the runway module is imported.
+    """
+
     def __init__(self):
         self.options = {}
         self.setup_fn = None
@@ -97,6 +101,19 @@ class RunwayModel(object):
                 return json.dumps(err.to_response())
 
     def setup(self, decorated_fn=None, options=None):
+        """A decorator function that creates a `/setup` HTTP route. This route calls
+        the decorated function on POST and returns the route's options on GET.
+
+        The options dictionary that is passed to this decorator defines the runway.data_types
+        that are accepted as post parameters.
+
+        :param decorated_fn: [description], defaults to None
+        :param decorated_fn: [type], optional
+        :param options: A dictionary mapping from strings to runway.data_types, defaults to None
+        :return: A decorated function
+        :rtype: function
+        """
+
         if decorated_fn:
             self.options = []
             self.setup_fn = decorated_fn
@@ -126,7 +143,7 @@ class RunwayModel(object):
             out_obj = cast_to_obj(out)
             out_obj.name = output_name
             outputs_as_list.append(out_obj)
-            
+
         command_info = dict(
             name=name,
             inputs=inputs_as_list,
@@ -161,6 +178,15 @@ class RunwayModel(object):
         self.running_status = 'RUNNING'
 
     def run(self):
+        """Run the model and start listening for commands on the network.
+           The server will run on port 8000 of all interfaces (0.0.0.0),
+           but these settings can be overwritten with the ``RW_HOST`` and
+           ``RW_PORT`` environment variables respectively.
+           ``--host`` and ``--port`` command-line arguments can also be
+           used by any script that uses this method to overwrite these
+           environment variables.
+        """
+
         parser = ArgumentParser()
         parser.add_argument(
             '--host',
