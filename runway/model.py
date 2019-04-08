@@ -15,7 +15,7 @@ from .utils import gzipped, serialize_command, cast_to_obj
 
 class RunwayModel(object):
     def __init__(self):
-        self.options = {}
+        self.options = []
         self.setup_fn = None
         self.commands = {}
         self.command_fns = {}
