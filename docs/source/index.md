@@ -23,7 +23,7 @@ If you are looking to port your own model, we recommend starting from our [Model
 
 ## Contents
 
-<!--http://www.sphinx-doc.org/en/1.5/markup/toctree.html-->
+<!-- http://www.sphinx-doc.org/en/1.5/markup/toctree.html -->
 ```eval_rst
 .. toctree::
     :maxdepth: 2
