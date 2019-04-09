@@ -20,7 +20,8 @@ python3 setup.py install
 Module documentation is generated from inline source code using docstrings and [Sphinx](http://www.sphinx-doc.org/en/master/). You can build the docs inside the `docs/` directory using `make`.
 
 ```bash
-# TODO: sphinx requires several dependencies, mention those here...
+pip install -U sphinx
+pip install recommonmark sphinx_rtd_theme
 cd docs
 make html
 ```

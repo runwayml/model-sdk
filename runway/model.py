@@ -101,17 +101,42 @@ class RunwayModel(object):
                 return json.dumps(err.to_response())
 
     def setup(self, decorated_fn=None, options=None):
-        """A decorator function that creates a `/setup` HTTP route. This route calls
-        the decorated function on POST and returns the route's options on GET.
+        """This decorator is used to wrap your own ``setup()`` (or equivalent)
+        function to run whatever initialization code you'd like. Your wrapped
+        function `should` configure and return a model. Your function `should`
+        also be made resilient to being called multiple times, as this is
+        possible depending on the behavior of the client application.
 
-        The options dictionary that is passed to this decorator defines the runway.data_types
-        that are accepted as post parameters.
+        This endpoint exposes a ``/setup`` HTTP route and calls the wrapped
+        (decorated) function once on ``runway.run()`` and whenever a new POST
+        request is made to the ``/setup`` route.
 
-        :param decorated_fn: [description], defaults to None
-        :param decorated_fn: [type], optional
-        :param options: A dictionary mapping from strings to runway.data_types, defaults to None
-        :return: A decorated function
-        :rtype: function
+        .. code-block:: python
+
+            import runway
+            from runway.data_types import category
+            from your_code import model
+
+            @runway.setup(options={"network_size": category(choices=[64, 128, 256, 512])})
+            def setup(opts):
+                print("Setup ran, and the network size is {}".format(opts["network_size"]))
+                return model(network_size=opts["network_size"])
+
+        .. note::
+            This is example code for demonstration purposes only. It will not
+            run, as the ``your_code`` import is not a real python module.
+
+        :param decorated_fn: A function to be decorated if ``runway.setup()`` is
+            not called as a decorator, defaults to None
+        :type decorated_fn: function, optional
+        :param options: A dictionary of setup options, mapping string names
+            ``runway.data_types``. These options define the schema of the
+            object that is passed as the single argument to the wrapped
+            function.
+        :type options: dict, optional
+        :return: A decorated function if used as a decorator,
+            nothing if ``decorated_fn`` is a function
+        :rtype: function or `NoneType`
         """
 
         if decorated_fn:
@@ -129,6 +154,59 @@ class RunwayModel(object):
             return decorator
 
     def command(self, name, inputs={}, outputs={}):
+        """This decorator function is used to define the interface for your
+        model. All functions that are wrapped by this decorator become exposed
+        via HTTP requests to ``/<command_name>``. Each command that you define
+        can be used to get data into or out of your runway model, or trigger an
+        action.
+
+        .. code-block:: python
+
+            import runway
+            from runway.data_types import category, vector, image
+            from your_code import model, base64EncodeImage
+
+            @runway.setup
+            def setup():
+                return model()
+
+            sample_inputs= {
+                "z": vector(length=512),
+                "category": category(choices="day", "night")
+            }
+
+            sample_outputs = {
+                "image": image(width=1024, height=1024)
+            }
+
+            @runway.command("sample", inputs=sample_inputs, outputs=sample_outputs)
+            def sample(model, inputs):
+                # The parameters passed to a function decorated by @runway.command() are:
+                #   1. The return value of a function wrapped by @runway.setup(), usually a model
+                #   2. The inputs sent with the HTTP request to the /<command_name> endpoint,
+                #      as defined by the inputs keyword argument delivered to @runway.command().
+                img = model.sample(z=inputs["z"], category=inputs["category"])
+                return { "image": base64EncodeImage(img) }
+
+        :param name: The name of the command. This name is used to create the
+            HTTP route associated with the command
+            (i.e. a name of "generate_text" will generate a ``/generate_text``
+            route).
+        :type name: string
+        :param inputs: A dictionary mapping input names to
+            ``runway.data_types``. This dictionary defines the interface used
+            to send input data to this command. At least one key value pair is
+            required.
+        :type inputs: dict
+        :param outputs: A dictionary defining the output data returned from the
+            wrapped function as ``runway.data_types``. At least one key value
+            pair is required.
+        :type outputs: dict
+        :raises Exception: An exception if there isn't at least one key, value
+            pair for both inputs and outputs dictionaries
+        :return: A decorated function
+        :rtype: function
+        """
         if len(inputs.values()) == 0 or len(outputs.values()) == 0:
             raise Exception('You need to provide at least one input and output for the command')
 
@@ -178,13 +256,27 @@ class RunwayModel(object):
         self.running_status = 'RUNNING'
 
     def run(self):
-        """Run the model and start listening for commands on the network.
-           The server will run on port 8000 of all interfaces (0.0.0.0),
-           but these settings can be overwritten with the ``RW_HOST`` and
-           ``RW_PORT`` environment variables respectively.
-           ``--host`` and ``--port`` command-line arguments can also be
-           used by any script that uses this method to overwrite these
-           environment variables.
+        """Run the model and start listening for HTTP requests on the network.
+        By default, the server will run on port ``8000`` of all network
+        interfaces (``0.0.0.0``), but these settings can be overwritten with
+        the ``RW_HOST`` and ``RW_PORT`` environment variables respectively.
+
+        .. code-block:: python
+
+            import runway
+
+            # ... setup an initialization function with @runway.setup()
+            # ... define a or two command with @runway.command()
+
+            # now it's time to run the model server which actually sets up the
+            # routes and handles the HTTP requests.
+            if __name__ == "__main__":
+                runway.run()
+
+        ``runway.run()`` acts as the entrypoint to the runway module. Call it
+        as the last thing in your runway_model.py, once you've defined a
+        ``@runway.setup()`` and one or more ``@runway.command()`` functions.
+
         """
 
         parser = ArgumentParser()
