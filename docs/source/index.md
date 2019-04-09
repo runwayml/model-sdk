@@ -33,5 +33,5 @@ If you are looking to port your own model, we recommend starting from our [Model
     Runway YAML Spec File <runway_spec_file>
     Data Types <data_types>
     Configuration <configuration>
-    Exceptions & Errors <exceptions>
+    Exceptions <exceptions>
 ```
