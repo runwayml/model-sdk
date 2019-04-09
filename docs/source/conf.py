@@ -18,7 +18,7 @@ from recommonmark.transform import AutoStructify
 
 # -- Project information -----------------------------------------------------
 
-project = 'Runway Python SDK'
+project = 'Runway Model SDK'
 copyright = '2019, Runway AI, Inc.'
 author = 'Runway AI, Inc.'
 
