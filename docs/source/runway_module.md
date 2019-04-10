@@ -16,5 +16,5 @@ See https://stackoverflow.com/questions/5365684/is-it-possible-to-override-sphin
 
 .. autofunction:: setup(decorated_fn=None, options=None)
 .. autofunction:: command(name, inputs={}, outputs={})
-.. autofunction:: run()
+.. autofunction:: run(host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False)
 ```

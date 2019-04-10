@@ -258,8 +258,7 @@ class RunwayModel(object):
     def run(self):
         """Run the model and start listening for HTTP requests on the network.
         By default, the server will run on port ``8000`` of all network
-        interfaces (``0.0.0.0``), but these settings can be overwritten with
-        the ``RW_HOST`` and ``RW_PORT`` environment variables respectively.
+        interfaces (``0.0.0.0``).
 
         .. code-block:: python
 
@@ -274,9 +273,61 @@ class RunwayModel(object):
                 runway.run()
 
         ``runway.run()`` acts as the entrypoint to the runway module. Call it
-        as the last thing in your runway_model.py, once you've defined a
-        ``@runway.setup()`` and one or more ``@runway.command()`` functions.
+        as the last thing in your ``runway_model.py``, once you've defined a
+        ``@runway.setup()`` function and one or more ``@runway.command()``
+        functions.
 
+        :param host: The IP address to bind the HTTP server to, defaults to
+            "0.0.0.0" (all interfaces). This value will be overwritten by the
+            ``RW_HOST`` environment variable if it is present.
+        :type host: string, optional
+        :param port: The port to bind the HTTP server to, defaults to 8000.
+            This value will be overwritten by the ``RW_PORT`` environment
+            variable if it is present.
+        :type port: int, optional
+        :param model_options: The model options that are passed to
+            ``@runway.setup()`` during initialization, defaults to {}. This
+            value will be overwritten by the ``RW_MODEL_OPTIONS`` environment
+            variable if it is present.
+        :type model_options: dict, optional
+        :param debug: Whether to run the Flask HTTP server in debug mode, which
+            enables live reloading, defaults to False. This value will be
+            overwritten by the ``RW_DEBUG`` environment variable if it is
+            present.
+        :type debug: boolean, optional
+        :param meta: Print the model's options and commands as JSON and exit,
+            defaults to false. This functionality is used in a production
+            environment to dynamically discover the interface presented by
+            the Runway model at runtime. This value will be overwritten by the
+            ``RW_META`` environment variable if it is present.
+        :type meta: boolean, optional
+
+        .. warning::
+            All keyword arguments to the ``runway.run()`` function will be
+            overwritten by environment variables when your model is run by the
+            Runway app. Using the default values for these arguments, or
+            supplying your own in python code, is fine so long as you are aware
+            of the fact that their values will be overwritten by the following
+            environment variables at runtime in a production environment:
+
+            - ``RW_HOST``: Defines the IP address to bind the HTTP server to.
+              This environment variable overwrites any value passed as the
+              ``host`` keyword argument.
+            - ``RW_PORT``: Defines the port to bind the HTTP server to. This
+              environment variable overwrites any value passed as the ``port``
+              keyword argument.
+            - ``RW_MODEL_OPTIONS``: Defines the model options that are passed to
+              ``@runway.setup()`` during initialization. This environment
+              variable overwrites any value passed as the ``model_options``
+              keyword argument.
+            - ``RW_DEBUG``: Defines whether to run the Flask HTTP server in
+              debug mode, which enables live reloading. This environment
+              variable overwrites any value passed as the ``debug`` keyword
+              argument. ``RW_DEBUG=1`` enables debug mode.
+            - ``RW_META``: Defines the behavior of the ``runway.run()``
+              function. If ``RW_META=1`` the function prints the model's options
+              and commands as JSON and then exits. This environment variables
+              overwrites any value passed as the ``meta`` keyward argument.
         """
 
         parser = ArgumentParser()
