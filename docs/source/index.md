@@ -21,14 +21,14 @@ A Runway model consists of two special files:
 
 If you are looking to port your own model, we recommend starting from our [Model Template](https://github.com/runwayml/model-template) repository hosted on GitHub. This repository contains a basic model that you can use as boilerplate instead of having to start from scratch.
 
-## Contents
-
 <!-- http://www.sphinx-doc.org/en/1.5/markup/toctree.html -->
 ```eval_rst
 .. toctree::
     :maxdepth: 2
     :name: mastertoc
+    :hidden:
 
+    Home <index>
     Runway Module <runway_module>
     Runway YAML Spec File <runway_spec_file>
     Data Types <data_types>

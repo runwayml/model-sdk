@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro');
+
+p, a {
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+a {
+    color: #42b983;
+}
+
+a:visited {
+    color: #3e8f6b
+}
+
+.logo {
+    max-width: 30% !important;
+}
+
+code.literal {
+    color: #636363 !important;
+}
+
+.note .admonition-title {
+    background: #1bd18b !important;
+}
+
+.note {
+    background: #42b9831f !important;
+}
+
+.wy-side-nav-search > a {
+    color: #000;
+}
+
+.wy-nav-top {
+    background: #1bd18b;
+}
+
+.wy-nav-top a {
+    color: #fff;
+}
+
+a.icon, a.icon:visited {
+    color: #fff !important;
+}
+
+.wy-nav-side a:visited {
+    /* don't change colors for visited pages in the nav bar */
+    color: #d9d9d9;
+}
+
+a code {
+    text-decoration: underline;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+dt {
+    color: #42b983 !important;
+    border-top: solid 3px #42b983 !important;
+    border-left: none !important;
+    background: #42b9831f !important;
+}

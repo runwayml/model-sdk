@@ -71,6 +71,27 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_logo = '_static/images/icon.png'
+
+# https://sphinx-rtd-theme.readthedocs.io/en/stable/configuring.html
+html_theme_options = {
+    'canonical_url': 'https://sdk.runwayml.com',
+    'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard
+    'logo_only': False,
+    'display_version': True,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': False,
+    'style_nav_header_background': '#1bd18b',
+    # Toc options
+    'collapse_navigation': True,
+    'sticky_navigation': True,
+    'navigation_depth': 1,
+    'includehidden': True,
+    'titles_only': False
+}
+
+# don't think this one is working...
+github_url = 'https://github.com/runwayml/model-sdk'
 
 # app setup hook
 def setup(app):
@@ -80,3 +101,4 @@ def setup(app):
         'enable_eval_rst': True
     }, True)
     app.add_transform(AutoStructify)
+    app.add_stylesheet('css/custom.css')
