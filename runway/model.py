@@ -3,7 +3,6 @@ import sys
 import logging
 import datetime
 import traceback
-from argparse import ArgumentParser
 import json
 from flask import Flask, request
 from flask_cors import CORS
@@ -168,11 +167,12 @@ class RunwayModel(object):
         env_debug         = os.getenv('RW_DEBUG')
         env_model_options = os.getenv('RW_MODEL_OPTIONS')
 
-        if (env_host != None):          host = env_host
-        if (env_port != None):          port = int(env_port)
-        if (env_meta != None):          meta = bool(int(env_meta))
-        if (env_debug != None):         debug = bool(int(env_debug))
-        if (env_model_options != None): model_options = env_model_options
+        if env_host is not None:  host = env_host
+        if env_port is not None:  port = int(env_port)
+        if env_meta is not None:  meta = bool(int(env_meta))
+        if env_debug is not None: debug = bool(int(env_debug))
+        if env_model_options is not None:
+            model_options = json.loads(env_model_options)
 
         if meta:
             print(json.dumps(dict(
@@ -182,8 +182,6 @@ class RunwayModel(object):
             return
         print('Setting up model...')
         try:
-            if (type(model_options) == str):
-                model_options = json.loads(model_options)
             self.setup_model(model_options)
         except RunwayError as err:
             resp = err.to_response()
