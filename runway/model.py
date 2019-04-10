@@ -161,7 +161,7 @@ class RunwayModel(object):
         self.running_status = 'RUNNING'
 
     def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False):
-        print('debug is {}'.format(debug))
+
         env_host          = os.getenv('RW_HOST')
         env_port          = os.getenv('RW_PORT')
         env_meta          = os.getenv('RW_META')
@@ -170,48 +170,9 @@ class RunwayModel(object):
 
         if (env_host != None):          host = env_host
         if (env_port != None):          port = int(env_port)
-        if (env_meta != None):          meta = bool(env_meta)
-        if (env_debug != None):         debug = bool(env_debug)
+        if (env_meta != None):          meta = bool(int(env_meta))
+        if (env_debug != None):         debug = bool(int(env_debug))
         if (env_model_options != None): model_options = env_model_options
-
-        # host = os.getenv('RW_HOST') if os.getenv('RW_HOST') != None else host
-        # port = os.getenv('RW_PORT') if os.getenv('RW_PORT') != None else port-
-        # model_options = os.getenv('RW_MODEL_OPTIONS') if os.getenv('RW_MODEL_OPTIONS') != None else model
-        # debug = os.getenv('RW_DEBUG') if os.getenv('RW_DEBUG') != None
-        # meta = os.getenv('RW_META') if os.getenv('RW_META') != None
-
-        # parser = ArgumentParser()
-        # parser.add_argument(
-        #     '--host',
-        #     type=str,
-        #     default=os.getenv('RW_HOST', '0.0.0.0'),
-        #     help='Host for the model server'
-        # )
-        # parser.add_argument(
-        #     '--port',
-        #     type=int,
-        #     default=int(os.getenv('RW_PORT', '8000')),
-        #     help='Port for the model server'
-        # )
-        # parser.add_argument(
-        #     '--rw_model_options',
-        #     type=str,
-        #     default=os.getenv('RW_MODEL_OPTIONS', '{}'),
-        #     help='Pass options to the Runway model as a JSON string'
-        # )
-        # parser.add_argument(
-        #     '--debug',
-        #     action='store_true',
-        #     default=os.getenv('RW_DEBUG', '0') == '1',
-        #     help='Activate debug mode (live reload)'
-        # )
-        # parser.add_argument(
-        #     '--meta',
-        #     default=os.getenv('RW_META', '0') == '1',
-        #     action='store_true',
-        #     help='Print model manifest'
-        # )
-        # args = parser.parse_args()
 
         if meta:
             print(json.dumps(dict(
