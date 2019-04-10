@@ -68,7 +68,7 @@ class InvalidInputError(RunwayError):
     :type code: number
     """
     def __init__(self, name):
-        super(MissingInputError, self).__init__()
+        super(InvalidInputError, self).__init__()
         self.message = 'Invalid input: %s.' % name
         self.code = 400
 
@@ -131,6 +131,6 @@ class MissingArgumentError(RunwayError):
     :type code: number
     """
     def __init__(self, arg):
-        super(SetupError, self).__init__()
+        super(MissingArgumentError, self).__init__()
         self.message = 'Missing argument: %s' % arg
         self.code = 500

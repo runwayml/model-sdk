@@ -46,7 +46,7 @@ class any(object):
 
     def to_dict(self):
         ret = {}
-        ret['type'] = 'image'
+        ret['type'] = 'any'
         ret['name'] = self.name or 'field'
         return ret
 

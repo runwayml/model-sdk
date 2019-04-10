@@ -3,7 +3,6 @@ import sys
 import logging
 import datetime
 import traceback
-from argparse import ArgumentParser
 import json
 from flask import Flask, request
 from flask_cors import CORS
@@ -19,7 +18,7 @@ class RunwayModel(object):
     """
 
     def __init__(self):
-        self.options = {}
+        self.options = []
         self.setup_fn = None
         self.commands = {}
         self.command_fns = {}
@@ -255,7 +254,7 @@ class RunwayModel(object):
             self.model = self.setup_fn()
         self.running_status = 'RUNNING'
 
-    def run(self):
+    def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False):
         """Run the model and start listening for HTTP requests on the network.
         By default, the server will run on port ``8000`` of all network
         interfaces (``0.0.0.0``).
@@ -330,41 +329,20 @@ class RunwayModel(object):
               overwrites any value passed as the ``meta`` keyward argument.
         """
 
-        parser = ArgumentParser()
-        parser.add_argument(
-            '--host',
-            type=str,
-            default=os.getenv('RW_HOST', '0.0.0.0'),
-            help='Host for the model server'
-        )
-        parser.add_argument(
-            '--port',
-            type=int,
-            default=int(os.getenv('RW_PORT', '8000')),
-            help='Port for the model server'
-        )
-        parser.add_argument(
-            '--rw_model_options',
-            type=str,
-            default=os.getenv('RW_MODEL_OPTIONS', '{}'),
-            help='Pass options to the Runway model as a JSON string'
-        )
-        parser.add_argument(
-            '--debug',
-            action='store_true',
-            default=os.getenv('RW_DEBUG', '0') == '1',
-            help='Activate debug mode (live reload)'
-        )
-        parser.add_argument(
-            '--meta',
-            default=os.getenv('RW_META', '0') == '1',
-            action='store_true',
-            help='Print model manifest'
-        )
-        args = parser.parse_args()
-        host = args.host
-        port = args.port
-        if args.meta:
+        env_host          = os.getenv('RW_HOST')
+        env_port          = os.getenv('RW_PORT')
+        env_meta          = os.getenv('RW_META')
+        env_debug         = os.getenv('RW_DEBUG')
+        env_model_options = os.getenv('RW_MODEL_OPTIONS')
+
+        if env_host is not None:  host = env_host
+        if env_port is not None:  port = int(env_port)
+        if env_meta is not None:  meta = bool(int(env_meta))
+        if env_debug is not None: debug = bool(int(env_debug))
+        if env_model_options is not None:
+            model_options = json.loads(env_model_options)
+
+        if meta:
             print(json.dumps(dict(
                 options=[opt.to_dict() for opt in self.options],
                 commands=[serialize_command(cmd) for cmd in self.commands.values()]
@@ -372,13 +350,13 @@ class RunwayModel(object):
             return
         print('Setting up model...')
         try:
-            self.setup_model(json.loads(args.rw_model_options))
+            self.setup_model(model_options)
         except RunwayError as err:
             resp = err.to_response()
             print(resp['error'])
             sys.exit(1)
         print('Starting model server at http://{0}:{1}...'.format(host, port))
-        if args.debug:
+        if debug:
             logging.basicConfig(level=logging.DEBUG)
             self.app.debug = True
             self.app.run(host=host, port=port, debug=True, threaded=True)
