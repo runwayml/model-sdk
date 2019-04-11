@@ -1,4 +1,4 @@
-.PHONY: clean test package test
+.PHONY: clean test package test publish_release
 
 clean:
 	rm -rf dist/*
@@ -15,5 +15,8 @@ dev:
 	pip install -r requirements-dev.txt
 
 publish_release:
+	rm -rf dist/*	
 	python setup.py tag_release
 	git push --tags
+	make package
+	twine upload dist/*
