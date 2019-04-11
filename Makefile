@@ -13,3 +13,7 @@ package:
 dev:
 	pip install -e .
 	pip install -r requirements-dev.txt
+
+publish_release:
+	python setup.py tag_release
+	git push --tags
