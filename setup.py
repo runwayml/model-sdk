@@ -9,7 +9,7 @@ except ImportError:
     from distutils.core import setup
     from distutils.cmd import Command
 
-from runway import __version__
+here = os.path.abspath(os.path.dirname(__file__))
 
 with open('LICENSE') as f:
     license = f.read()
@@ -19,6 +19,10 @@ with open('requirements.txt') as f:
 
 with open('README.md') as f:
     long_description = f.read()
+
+about = {}
+with open(os.path.join(here, 'runway', '__version__.py'), 'r') as f:
+    exec(f.read(), about)
 
 class VerifyVersionCommand(Command):
     """Custom command to verify that the git tag matches our version"""
@@ -35,15 +39,15 @@ class VerifyVersionCommand(Command):
     def run(self):
         tag = os.getenv('CIRCLE_TAG')
 
-        if tag != __version__:
+        if tag != about['__version__']:
             info = "Git tag: {0} does not match the version of this app: {1}".format(
-                tag, __version__
+                tag, about['__version__']
             )
             sys.exit(info)
 
 setup(
     name='runway-python',
-    version=__version__,
+    version=about['__version__'],
     description='Helper library for creating Runway models',
     long_description=long_description,
     long_description_content_type='text/markdown',
