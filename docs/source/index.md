@@ -17,7 +17,7 @@ Published versions of the SDK are hosted on the [PyPI project website](https://p
 A Runway model consists of two special files:
 
 - `runway_model.py`: A python script that imports the `runway` module (SDK) and exposes its interface via `runway.commands()`. This file is used as the **entrypoint** to your model.
-- `runway.yml`: A spec file that describes dependencies and build steps needed to build and run the model.
+- [`runway.yml`](runway_yaml_file.html): A configuration file that describes dependencies and build steps needed to build and run the model.
 
 If you are looking to port your own model, we recommend starting from our [Model Template](https://github.com/runwayml/model-template) repository hosted on GitHub. This repository contains a basic model that you can use as boilerplate instead of having to start from scratch.
 
@@ -29,8 +29,8 @@ If you are looking to port your own model, we recommend starting from our [Model
     :hidden:
 
     Home <index>
+    Runway YAML File <runway_yaml_file>
     Runway Module <runway_module>
-    Runway YAML Spec File <runway_spec_file>
     Data Types <data_types>
     Exceptions <exceptions>
 ```
