@@ -45,6 +45,21 @@ class VerifyVersionCommand(Command):
             )
             sys.exit(info)
 
+class TagReleaseCommand(Command):
+    """Custom command to verify that the git tag matches our version"""
+    description = 'verify that the git tag matches our version'
+
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        os.system('git tag %s' % about['__version__'])
+
 setup(
     name='runway-python',
     version=about['__version__'],
@@ -70,5 +85,6 @@ setup(
     ],
     cmdclass={
         'verify': VerifyVersionCommand,
+        'tag_release': TagReleaseCommand
     }
 )
