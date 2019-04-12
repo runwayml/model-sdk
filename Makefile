@@ -1,6 +1,6 @@
-.PHONY: clean test package dev clean_package clean_docs docs publish_release
+.PHONY: clean test package dev clean-package clean-docs docs publish-release
 
-clean: clean_docs clean_package
+clean: clean-docs clean-package
 
 test:
 	py.test tests
@@ -13,17 +13,16 @@ dev:
 	pip install -e .
 	pip install -r requirements-dev.txt
 
-clean_package:
+clean-package:
 	rm -rf dist/*
 
-clean_docs:
+clean-docs:
 	$(MAKE) -C docs clean
 
 docs:
 	$(MAKE) -C docs html
 
-publish_release:
-	rm -rf dist/*
+publish-release: clean-package
 	python setup.py tag_release
 	git push --tags
 	make package
