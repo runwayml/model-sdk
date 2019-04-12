@@ -8,3 +8,4 @@ venv
 .coverage
 .DS_Store
 htmlcov
+__pycache__
