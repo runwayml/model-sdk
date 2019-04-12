@@ -19,7 +19,7 @@ from my_image_generation_model import big_model, little_model
 # again for each well formed HTTP POST request to http://localhost:8000/setup.
 @runway.setup(options={'model_size': category(choices=['big', 'little'])})
 def setup(opts):
-    if (opts['model_size'] == 'big'):
+    if opts['model_size'] == 'big':
         return big_model()
     else:
         return little_model()

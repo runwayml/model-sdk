@@ -1,6 +1,6 @@
 import runway
 from runway.data_types import category, vector, image
-from your_code import model, base64EncodeImage
+from your_code import model
 
 @runway.setup
 def setup():
@@ -8,7 +8,7 @@ def setup():
 
 sample_inputs= {
     "z": vector(length=512),
-    "category": category(choices="day", "night")
+    "category": category(choices=["day", "night"])
 }
 
 sample_outputs = {
@@ -22,5 +22,5 @@ def sample(model, inputs):
     #   2. The inputs sent with the HTTP request to the /<command_name> endpoint,
     #      as defined by the inputs keyword argument delivered to @runway.command().
     img = model.sample(z=inputs["z"], category=inputs["category"])
-    return { "image": base64EncodeImage(img) }
+    return { "image": img }
 

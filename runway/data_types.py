@@ -101,8 +101,8 @@ class array(object):
 
 
 class image(object):
-    """A data type representing an image. Images are expected to be passed to \
-        and from this variable type using base64 encoded strings (e.g. \
+    """A data type representing an image. Images are expected to be passed to
+        and from this variable type using base64 encoded data URI strings (e.g.
         ``data:image/jpeg;base64,/9j/2wCEAAgGBgcG...``.
 
     .. code-block:: python
@@ -114,9 +114,10 @@ class image(object):
         outputs = {"image": image(width=512, height=512)}
         @runway.command("style_transfer", inputs=inputs, outputs=outputs)
         def style_transfer(result_of_setup, args):
-            # perform some transformation to the image, and then return it as a base64 string
-            base64String = do_style_transfer(args["image"])
-            return { "image": base64String }
+            # perform some transformation to the image, and then return it as a
+            # PIL image or numpy array
+            img = do_style_transfer(args["image"])
+            return { "image": img }
 
     :param name: The name associated with this variable, defaults to "image"
     :type name: string, optional

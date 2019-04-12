@@ -16,7 +16,7 @@ Published versions of the SDK are hosted on the [PyPI project website](https://p
 
 A Runway model consists of two special files:
 
-- `runway_model.py`: A python script that imports the [`runway` module](runway_module.html) (SDK) and exposes its interface via `runway.commands()`. This file is used as the **entrypoint** to your model.
+- `runway_model.py`: A python script that imports the [`runway` module](runway_module.html) (SDK) and exposes its interface via one or more `runway.command()` functions. This file is used as the **entrypoint** to your model.
 - [`runway.yml`](runway_yaml_file.html): A configuration file that describes dependencies and build steps needed to build and run the model.
 
 ### Example `runway_model.py`
@@ -41,7 +41,7 @@ from your_image_generation_model import big_model, little_model
 # again for each well formed HTTP POST request to http://localhost:8000/setup.
 @runway.setup(options={'model_size': category(choices=['big', 'little'])})
 def setup(opts):
-    if (opts['model_size'] == 'big'):
+    if opts['model_size'] == 'big':
         return big_model()
     else:
         return little_model()
@@ -69,7 +69,7 @@ def generate(model, input_args):
 # creates an HTTP server that listens for and fulfills remote requests that
 # trigger commands.
 if __name__ == '__main__':
-    runway.run(host="0.0.0.0", port=8000, model_options={ 'big' })
+    runway.run(host='0.0.0.0', port=8000, model_options={ 'model_size': 'big' })
 ```
 
 If you are looking to port your own model, we recommend starting from our [Model Template](https://github.com/runwayml/model-template) repository hosted on GitHub. This repository contains a basic model that you can use as boilerplate instead of having to start from scratch.
@@ -79,7 +79,7 @@ If you are looking to port your own model, we recommend starting from our [Model
 Each Runway model must have a `runway.yml` configuration file in its root directory. This file defines the steps needed to build and run your model for use with the Runway app. This file is written in YAML, a human-readable superset of JSON. Below is an example `runway.yml` file. This example file illustrates how you can provision your model's environment.
 
 ```yaml
-version: 1
+version: 0.1
 python: 3.7
 entrypoint: python runway_model.py
 cuda: 9.2

@@ -116,7 +116,8 @@ class RunwayModel(object):
             from runway.data_types import category
             from your_code import model
 
-            @runway.setup(options={"network_size": category(choices=[64, 128, 256, 512])})
+            options = {"network_size": category(choices=[64, 128, 256, 512], default=256)}
+            @runway.setup(options=options)
             def setup(opts):
                 print("Setup ran, and the network size is {}".format(opts["network_size"]))
                 return model(network_size=opts["network_size"])
@@ -163,7 +164,7 @@ class RunwayModel(object):
 
             import runway
             from runway.data_types import category, vector, image
-            from your_code import model, base64EncodeImage
+            from your_code import model
 
             @runway.setup
             def setup():
@@ -171,7 +172,7 @@ class RunwayModel(object):
 
             sample_inputs= {
                 "z": vector(length=512),
-                "category": category(choices="day", "night")
+                "category": category(choices=["day", "night"])
             }
 
             sample_outputs = {
@@ -185,7 +186,7 @@ class RunwayModel(object):
                 #   2. The inputs sent with the HTTP request to the /<command_name> endpoint,
                 #      as defined by the inputs keyword argument delivered to @runway.command().
                 img = model.sample(z=inputs["z"], category=inputs["category"])
-                return { "image": base64EncodeImage(img) }
+                return { "image": img }
 
         :param name: The name of the command. This name is used to create the
             HTTP route associated with the command
