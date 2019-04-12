@@ -12,12 +12,18 @@ pip3 install runway-python
 
 Published versions of the SDK are hosted on the [PyPI project website](https://pypi.org/project/runway-python/).
 
-## Example Model
+## Runway Models
 
 A Runway model consists of two special files:
 
 - `runway_model.py`: A python script that imports the [`runway` module](runway_module.html) (SDK) and exposes its interface via `runway.commands()`. This file is used as the **entrypoint** to your model.
 - [`runway.yml`](runway_yaml_file.html): A configuration file that describes dependencies and build steps needed to build and run the model.
+
+### Example `runway_model.py`
+
+Runway models expose a standard interface that allows the Runway app to interact with them over HTTP. This is accomplished using three functions: `@runway.setup()`, `@runway.command()`, and `runway.run()`.
+
+Any Python-based model, independent of the ML framework or toolkit, can be converted into a Runway model using this simple interface. For more information about the `runway` module, see the [module reference](runway_module.html) page.
 
 ```eval_rst
 .. note::
@@ -67,6 +73,26 @@ if __name__ == '__main__':
 ```
 
 If you are looking to port your own model, we recommend starting from our [Model Template](https://github.com/runwayml/model-template) repository hosted on GitHub. This repository contains a basic model that you can use as boilerplate instead of having to start from scratch.
+
+### Example `runway.yml`
+
+Each Runway model must have a `runway.yml` configuration file in its root directory. This file defines the steps needed to build and run your model for use with the Runway app. This file is written in YAML, a human-readable superset of JSON. Below is an example `runway.yml` file. This example file illustrates how you can provision your model's environment.
+
+```yaml
+version: 1
+python: 3.7
+entrypoint: python runway_model.py
+cuda: 9.2
+framework: tensorflow
+files:
+    ignore:
+        - image_dataset/*
+build_steps:
+    - pip install runway-python==0.1.0
+    - pip install -r requirements.txt
+```
+
+Continue on to the [Runway YAML reference page](runway_yaml_file.html) to learn more about the possible configuration values supported by the `runway.yml` file.
 
 <!-- http://www.sphinx-doc.org/en/1.5/markup/toctree.html -->
 ```eval_rst
