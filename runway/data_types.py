@@ -101,9 +101,14 @@ class array(object):
 
 
 class image(object):
-    """A data type representing an image. Images are expected to be passed to
-        and from this variable type using base64 encoded data URI strings (e.g.
-        ``data:image/jpeg;base64,/9j/2wCEAAgGBgcG...``.
+    """A data type representing an image. Images represent PIL or numpy
+    images but are passed to and from the Model SDK via base64 encoded data URI
+    strings over the network
+    (e.g. ``data:image/jpeg;base64,/9j/2wCEAAgGBgcG...``).
+
+    When using an image as an output data type for ``@runway.command()``
+    wrapped function, return a PIL or numpy image from your function and it will
+    automatically be serialized as a base64 encoded data URI.
 
     .. code-block:: python
 
@@ -115,8 +120,10 @@ class image(object):
         @runway.command("style_transfer", inputs=inputs, outputs=outputs)
         def style_transfer(result_of_setup, args):
             # perform some transformation to the image, and then return it as a
-            # PIL image or numpy array
+            # PIL image or numpy image
             img = do_style_transfer(args["image"])
+            # The PIL or numpy image will be automatically converted to a base64
+            # encoded data URI string by the @runway.command() decorator.
             return { "image": img }
 
     :param name: The name associated with this variable, defaults to "image"

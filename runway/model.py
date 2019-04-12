@@ -186,6 +186,8 @@ class RunwayModel(object):
                 #   2. The inputs sent with the HTTP request to the /<command_name> endpoint,
                 #      as defined by the inputs keyword argument delivered to @runway.command().
                 img = model.sample(z=inputs["z"], category=inputs["category"])
+                # `img` can be a PIL or numpy image. It will be encoded as a base64 URI string
+                # automatically by @runway.command().
                 return { "image": img }
 
         :param name: The name of the command. This name is used to create the
