@@ -1,0 +1,6 @@
+Flask>=0.12.2
+Flask-Cors>=3.0.2
+numpy>=1.15.0
+Pillow>=4.3.0
+gevent>=1.4.0
+wget>=3.2

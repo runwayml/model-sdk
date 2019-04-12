@@ -1,8 +1,6 @@
 from .model import RunwayModel
 from .data_types import *
-import sys
-
-__version__ = '0.1.0'
+from .__version__ import __version__
 
 __defaultmodel__ = RunwayModel()
 setup = __defaultmodel__.setup
