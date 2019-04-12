@@ -1,6 +1,6 @@
 # Runway Model SDK
 
-The Runway Model SDK allows you to port new and existing machine learning models to the Runway platform. With a few lines of code, you can modify your Python model to be used and shared by others on the [Runway app](https://runwayml.com).
+The Runway Model SDK allows you to port new and existing machine learning models to the Runway platform. With a few lines of code, you can modify your Python model to be used and shared by others on [Runway](https://runwayml.com).
 
 <!--
 The model template repo is currently private, but we'll add this text when it become public:
