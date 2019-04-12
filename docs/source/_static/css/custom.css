@@ -346,3 +346,13 @@ dt>code {
 a.reference.internal {
     color: #252525 !important;
 }
+
+/* Hide Read the Docs add */
+.keep-us-sustainable {
+    display: none !important;
+}
+
+/* remove gross underline in GitHub link in Read the Docs */
+a.fa-github {
+    text-decoration: none !important;
+}
