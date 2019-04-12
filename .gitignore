@@ -4,3 +4,7 @@ dist
 build
 deploy.sh
 .vscode
+venv
+.coverage
+.DS_Store
+htmlcov

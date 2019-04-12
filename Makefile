@@ -4,7 +4,12 @@ clean:
 	rm -rf dist/*
 
 test:
-	py.test tests
+	pytest tests
+
+coverage:
+	coverage run --source runway -m pytest
+	coverage report
+	coverage html
 
 package:
 	python setup.py sdist
@@ -15,7 +20,7 @@ dev:
 	pip install -r requirements-dev.txt
 
 publish_release:
-	rm -rf dist/*	
+	rm -rf dist/*
 	python setup.py tag_release
 	git push --tags
 	make package

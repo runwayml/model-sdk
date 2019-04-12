@@ -37,7 +37,7 @@ class InvalidInputError(RunwayError):
 class InferenceError(RunwayError):
     def __init__(self, message):
         super(InferenceError, self).__init__()
-        self.message = 'Inference error: %s' % message
+        self.message = 'Inference error: %s.' % message
         self.code = 500
 
 
@@ -51,12 +51,12 @@ class UnknownCommandError(RunwayError):
 class SetupError(RunwayError):
     def __init__(self, message):
         super(SetupError, self).__init__()
-        self.message = 'Setup error: %s' % message
+        self.message = 'Setup error: %s.' % message
         self.code = 500
 
 
 class MissingArgumentError(RunwayError):
     def __init__(self, arg):
         super(MissingArgumentError, self).__init__()
-        self.message = 'Missing argument: %s' % arg
+        self.message = 'Missing argument: %s.' % arg
         self.code = 500
