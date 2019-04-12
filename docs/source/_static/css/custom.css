@@ -130,7 +130,7 @@ dt {
     padding: 1em !important;
     font-weight: 300 !important;
     font-family: Roboto Mono, Monaco, courier, monospace !important;
-    margin: 3em 0 !important;
+    margin: 1em 0 !important;
 }
 
 .wy-menu-vertical li.toctree-l1.current>a {
@@ -209,6 +209,10 @@ pre span {
     line-height: 1.5em !important;
 }
 
+.highlight {
+    background: #f2f2f2 !important;
+}
+
 .highlight .kn {
     color: #e96900 !important;
 }
@@ -279,8 +283,12 @@ code,
 .rst-content tt,
 .rst-content code {
     background: #f2f2f2 !important;
-    border: none !important;
+    border: 1px solid #d2d2d2 !important;
     border-radius: 4px !important;
+}
+
+dl.function > dt > code {
+    border: 0px solid black !important;
 }
 
 .wy-alert.wy-alert-warning,
@@ -334,4 +342,7 @@ code,
 
 dt>code {
     background: none !important;
+}
+a.reference.internal {
+    color: #252525 !important;
 }
