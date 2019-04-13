@@ -33,8 +33,16 @@ jobs:
             . venv/bin/activate
             make test
       - run:
-          name: code coverage
-          command: make coverage-codecov
-      - codecov/upload:
-          file: coverage.xml
+          name: generate code coverage data
+          command: |
+          . venv/bin/activate
+          make coverage-codecov
+      - run:
+          name: upload code coverage data
+          # this approach relies on transport security only and is pretty
+          # insecure. Using it now for testing, but will probably switch to
+          # the python package instead for security.
+          command: |
+          . venv/bin/activate
+          bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
 
