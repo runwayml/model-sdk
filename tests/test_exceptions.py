@@ -1,3 +1,5 @@
+# Ensure that the local version of the runway module is used, not a pip
+# installed version
 import sys
 sys.path.insert(0, '..')
 sys.path.insert(0, '.')

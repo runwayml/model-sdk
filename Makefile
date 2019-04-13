@@ -1,9 +1,12 @@
-.PHONY: clean test coverage coverage-codecov package dev clean-package clean-docs clean-coverage docs publish-release
+.PHONY: clean test test-debug coverage coverage-codecov package dev clean-package clean-docs clean-coverage docs publish-release
 
 clean: clean-docs clean-package clean-coverage
 
 test:
 	pytest tests
+
+test-debug:
+	pytest tests -s
 
 coverage:
 	pytest --cov-report html --cov runway --disable-warnings tests
