@@ -7,8 +7,6 @@ workflows:
           filters:
             tags:
               only: /.*/
-orbs:
-  codecov: codecov/codecov@1.0.4
 jobs:
   build:
     docker:
@@ -39,10 +37,11 @@ jobs:
             make coverage-codecov
       - run:
           name: upload code coverage data
-          # this approach relies on transport security only and is pretty
-          # insecure. Using it now for testing, but will probably switch to
-          # the python package instead for security.
+          # This approach relies on transport security only and feels pretty
+          # insecure. That said, it is the recommended approach per codecov's
+          # docs. This approach uses the $CODECOV_TOKEN env variable.
+          # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
           command: |
             . venv/bin/activate
-            bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+            bash <(curl -s https://codecov.io/bash)
 
