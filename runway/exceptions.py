@@ -7,10 +7,20 @@ class RunwayError(Exception):
         self.message = 'An unknown error occurred.'
         self.code = 500
 
-    def to_response(self):
+    def get_traceback(self):
         _, _, tb = sys.exc_info()
-        formatted_tb = ''.join(traceback.format_tb(tb))
-        return {'error': self.message, 'traceback': formatted_tb}
+        traceback_lines = traceback.format_tb(tb)
+        return [l.strip() for l in traceback_lines]
+
+    def print(self):
+        print('\033[91m')
+        print(self.message)
+        for line in self.get_traceback():
+            print(line)
+        print('\033[0m')
+
+    def to_response(self):
+        return {'error': self.message, 'traceback': self.get_traceback()}
 
 
 class MissingOptionError(RunwayError):
@@ -37,7 +47,7 @@ class InvalidInputError(RunwayError):
 class InferenceError(RunwayError):
     def __init__(self, message):
         super(InferenceError, self).__init__()
-        self.message = 'Inference error: %s' % message
+        self.message = 'Error during inference: %s.' % message
         self.code = 500
 
 
@@ -51,7 +61,7 @@ class UnknownCommandError(RunwayError):
 class SetupError(RunwayError):
     def __init__(self, message):
         super(SetupError, self).__init__()
-        self.message = 'Setup error: %s' % message
+        self.message = 'Error during setup: %s' % message
         self.code = 500
 
 

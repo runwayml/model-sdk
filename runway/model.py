@@ -43,6 +43,7 @@ class RunwayModel(object):
                 self.setup_model(opts)
                 return json.dumps(dict(success=True))
             except RunwayError as err:
+                err.print()
                 return json.dumps(err.to_response()), err.code
 
         @self.app.route('/setup', methods=['GET'])
@@ -73,7 +74,7 @@ class RunwayModel(object):
                         results = {}
                         results[name] = value
                 except Exception as err:
-                    raise InferenceError(repr(err))
+                    raise InferenceError(repr(err)).with_traceback(sys.exc_info()[2])
 
                 serialized_outputs = {}
                 for out in outputs:
@@ -82,6 +83,7 @@ class RunwayModel(object):
                 return json.dumps(serialized_outputs).encode('utf8')
 
             except RunwayError as err:
+                err.print()
                 return json.dumps(err.to_response()), err.code
 
         @self.app.route('/<command_name>', methods=['GET'])
@@ -93,6 +95,7 @@ class RunwayModel(object):
                     raise UnknownCommandError(command_name)
                 return json.dumps(serialize_command(command))
             except RunwayError as err:
+                err.print()
                 return json.dumps(err.to_response())
 
     def setup(self, decorated_fn=None, options=None):
@@ -154,7 +157,10 @@ class RunwayModel(object):
                     deserialized_opts[name] = opt.default
                 else:
                     raise MissingOptionError(name)
-            self.model = self.setup_fn(deserialized_opts)
+            try:
+                self.model = self.setup_fn(deserialized_opts)
+            except Exception as err:
+                raise SetupError(repr(err)).with_traceback(sys.exc_info()[2])
         elif self.setup_fn:
             self.model = self.setup_fn()
         self.running_status = 'RUNNING'
@@ -184,8 +190,7 @@ class RunwayModel(object):
         try:
             self.setup_model(model_options)
         except RunwayError as err:
-            resp = err.to_response()
-            print(resp['error'])
+            err.print()
             sys.exit(1)
         print('Starting model server at http://{0}:{1}...'.format(host, port))
         if debug:
