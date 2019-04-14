@@ -13,11 +13,11 @@ class RunwayError(Exception):
         return [l.strip() for l in traceback_lines]
 
     def print(self):
-        print('\033[91m')
+        print('\033[91m', file=sys.stderr)
         print(self.message)
         for line in self.get_traceback():
-            print(line)
-        print('\033[0m')
+            print(line, file=sys.stderr)
+        print('\033[0m', file=sys.stderr)
 
     def to_response(self):
         return {'error': self.message, 'traceback': self.get_traceback()}
