@@ -1,6 +1,6 @@
 # Runway Module
 
-The runway module exposes three simple functions that can be combined to expose your models to the Runway app using a simple interface.
+The Runway module exposes three simple functions that can be combined to expose your models to the Runway app using a simple interface.
 
 - [`@runway.setup()`](#runway.setup): A decorator used to initialize and configure your model.
 - [`@runway.command()`](#runway.command): A decorator used to define the interface to your model. Each command creates an HTTP route which can process user input and return outputs from the model.
