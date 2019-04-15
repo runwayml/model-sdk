@@ -346,3 +346,8 @@ dt>code {
 a.reference.internal {
     color: #252525 !important;
 }
+.rst-other-versions > dt {
+    background: none !important;
+    padding: 0 !important;
+    border-left: 0px solid black !important;
+}
