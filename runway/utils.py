@@ -11,6 +11,7 @@ if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
     from io import BytesIO as IO
+import numpy as np
 from flask import after_this_request, request
 
 

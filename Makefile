@@ -1,5 +1,7 @@
 .PHONY: clean test test-debug coverage coverage-codecov package dev clean-package clean-docs clean-coverage docs publish-release
 
+all: dev test
+
 clean: clean-docs clean-package clean-coverage
 
 test:
