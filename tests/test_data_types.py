@@ -83,7 +83,7 @@ def test_number_deserialize_numpy_scalar():
     assert 10 == number().deserialize(np.float(10))
 
 def test_number_serialize_numpy_scalar():
-    assert 10 == number().serialize(np.array(10))
+    assert 10 == number().serialize(np.float(10))
 
 # ARRAY ------------------------------------------------------------------------
 def test_array_to_dict():
