@@ -351,3 +351,6 @@ a.reference.internal {
     padding: 0 !important;
     border-left: 0px solid black !important;
 }
+.wy-side-nav-search>div.version {
+    color: #1c1c1c !important;
+}
