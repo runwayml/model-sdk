@@ -18,7 +18,7 @@ class RunwayError(Exception):
     def get_traceback(self):
         """Return a list of lines containing the traceback of the exception \
         currently being handled.
-        
+
         :return A list of lines of the exception traceback
         :rtype list
         """
@@ -27,7 +27,7 @@ class RunwayError(Exception):
         return [l.strip() for l in traceback_lines]
 
     def print(self):
-        """Print the exception message and traceback to stderr."""        
+        """Print the exception message and traceback to stderr."""
         print('\033[91m', file=sys.stderr)
         print(self.message)
         for line in self.get_traceback():
@@ -135,7 +135,7 @@ class SetupError(RunwayError):
     """
     def __init__(self, message):
         super(SetupError, self).__init__()
-        self.message = 'Error during setup: %s' % message
+        self.message = 'Error during setup: %s.' % message
         self.code = 500
 
 

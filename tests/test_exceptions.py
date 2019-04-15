@@ -64,7 +64,7 @@ def test_invalid_input_error():
     check_code_and_error(InvalidInputError, 400, expect, inpt='test_option')
 
 def test_inference_error():
-    expect = 'Inference error: test_option.'
+    expect = 'Error during inference: test_option.'
     check_code_and_error(InferenceError, 500, expect, inpt='test_option')
 
 def test_unknown_command_error():
@@ -72,7 +72,7 @@ def test_unknown_command_error():
     check_code_and_error(UnknownCommandError, 404, expect, inpt='test_option')
 
 def test_setup_error():
-    expect = 'Setup error: test_option.'
+    expect = 'Error during setup: test_option.'
     check_code_and_error(SetupError, 500, expect, inpt='test_option')
 
 def test_missing_argument_error():
