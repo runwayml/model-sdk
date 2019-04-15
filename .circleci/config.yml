@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 workflows:
   version: 2
   build_and_deploy:
@@ -30,3 +30,18 @@ jobs:
           command: |
             . venv/bin/activate
             make test
+      - run:
+          name: generate code coverage data
+          command: |
+            . venv/bin/activate
+            make coverage-codecov
+      - run:
+          name: upload code coverage data
+          # This approach relies on transport security only and feels pretty
+          # insecure. That said, it is the recommended approach per codecov's
+          # docs. This approach uses the $CODECOV_TOKEN env variable.
+          # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+          command: |
+            . venv/bin/activate
+            bash <(curl -s https://codecov.io/bash)
+

@@ -1,9 +1,21 @@
-.PHONY: clean test package dev clean-package clean-docs docs publish-release
+.PHONY: clean test test-debug coverage coverage-codecov package dev clean-package clean-docs clean-coverage docs publish-release
 
-clean: clean-docs clean-package
+all: dev test
+
+clean: clean-docs clean-package clean-coverage
 
 test:
-	py.test tests
+	pytest tests
+
+test-debug:
+	pytest tests -s
+
+coverage:
+	pytest --cov-report html --cov runway --disable-warnings tests
+	pytest --cov-report term --cov runway --disable-warnings tests
+
+coverage-codecov:
+	pytest --cov-report xml --cov runway tests
 
 package:
 	python setup.py sdist
@@ -18,6 +30,11 @@ clean-package:
 
 clean-docs:
 	$(MAKE) -C docs clean
+
+clean-coverage:
+	rm -f .coverage
+	rm -f coverage.xml
+	rm -rf htmlcov
 
 docs:
 	$(MAKE) -C docs html
