@@ -129,16 +129,17 @@ class RunwayModel(object):
             This is example code for demonstration purposes only. It will not
             run, as the ``your_code`` import is not a real python module.
 
-        :param decorated_fn: A function to be decorated if ``runway.setup()`` is
-            not called as a decorator, defaults to None
+        :param decorated_fn: A function to be decorated. This argument is automatically
+            assigned the value of the wrapped function if the decorator syntax is used
+            without a function call
+            (e.g. ``@runway.setup`` instead of ``@runway.setup()``).
         :type decorated_fn: function, optional
         :param options: A dictionary of setup options, mapping string names
-            ``runway.data_types``. These options define the schema of the
+            to ``runway.data_types``. These options define the schema of the
             object that is passed as the single argument to the wrapped
             function.
         :type options: dict, optional
-        :return: A decorated function if used as a decorator,
-            nothing if ``decorated_fn`` is a function
+        :return: A decorated function
         :rtype: function or `NoneType`
         """
 
@@ -185,7 +186,7 @@ class RunwayModel(object):
             @runway.command("sample", inputs=sample_inputs, outputs=sample_outputs)
             def sample(model, inputs):
                 # The parameters passed to a function decorated by @runway.command() are:
-                #   1. The return value of a function wrapped by @runway.setup(), usually a model
+                #   1. The return value of a function wrapped by @runway.setup(), usually a model.
                 #   2. The inputs sent with the HTTP request to the /<command_name> endpoint,
                 #      as defined by the inputs keyword argument delivered to @runway.command().
                 img = model.sample(z=inputs["z"], category=inputs["category"])
@@ -207,7 +208,7 @@ class RunwayModel(object):
             wrapped function as ``runway.data_types``. At least one key value
             pair is required.
         :type outputs: dict
-        :raises Exception: An exception if there isn't at least one key, value
+        :raises Exception: An exception if there isn't at least one key value
             pair for both inputs and outputs dictionaries
         :return: A decorated function
         :rtype: function
@@ -265,46 +266,46 @@ class RunwayModel(object):
 
     def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False):
         """Run the model and start listening for HTTP requests on the network.
-        By default, the server will run on port ``8000`` of all network
-        interfaces (``0.0.0.0``).
+        By default, the server will run on port ``8000`` and listen on all
+        network interfaces (``0.0.0.0``).
 
         .. code-block:: python
 
             import runway
 
             # ... setup an initialization function with @runway.setup()
-            # ... define a or two command with @runway.command()
+            # ... define a command or two with @runway.command()
 
             # now it's time to run the model server which actually sets up the
             # routes and handles the HTTP requests.
             if __name__ == "__main__":
                 runway.run()
 
-        ``runway.run()`` acts as the entrypoint to the runway module. Call it
-        as the last thing in your ``runway_model.py``, once you've defined a
-        ``@runway.setup()`` function and one or more ``@runway.command()``
-        functions.
+        ``runway.run()`` acts as the entrypoint to the runway module. You should
+        call it as the last thing in your ``runway_model.py``, once you've
+        defined a ``@runway.setup()`` function and one or more
+        ``@runway.command()`` functions.
 
         :param host: The IP address to bind the HTTP server to, defaults to
-            "0.0.0.0" (all interfaces). This value will be overwritten by the
+            ``"0.0.0.0"`` (all interfaces). This value will be overwritten by the
             ``RW_HOST`` environment variable if it is present.
         :type host: string, optional
-        :param port: The port to bind the HTTP server to, defaults to 8000.
+        :param port: The port to bind the HTTP server to, defaults to ``8000``.
             This value will be overwritten by the ``RW_PORT`` environment
             variable if it is present.
         :type port: int, optional
         :param model_options: The model options that are passed to
-            ``@runway.setup()`` during initialization, defaults to {}. This
+            ``@runway.setup()`` during initialization, defaults to ``{}``. This
             value will be overwritten by the ``RW_MODEL_OPTIONS`` environment
             variable if it is present.
         :type model_options: dict, optional
         :param debug: Whether to run the Flask HTTP server in debug mode, which
-            enables live reloading, defaults to False. This value will be
+            enables live reloading, defaults to ``False``. This value will be
             overwritten by the ``RW_DEBUG`` environment variable if it is
             present.
         :type debug: boolean, optional
         :param meta: Print the model's options and commands as JSON and exit,
-            defaults to false. This functionality is used in a production
+            defaults to ``False``. This functionality is used in a production
             environment to dynamically discover the interface presented by
             the Runway model at runtime. This value will be overwritten by the
             ``RW_META`` environment variable if it is present.

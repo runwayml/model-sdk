@@ -102,13 +102,13 @@ class array(object):
 
 class image(object):
     """A data type representing an image. Images represent PIL or numpy
-    images but are passed to and from the Model SDK via base64 encoded data URI
+    images but are passed to and from the Model SDK as base64 encoded data URI
     strings over the network
     (e.g. ``data:image/jpeg;base64,/9j/2wCEAAgGBgcG...``).
 
-    When using an image as an output data type for ``@runway.command()``
-    wrapped function, return a PIL or numpy image from your function and it will
-    automatically be serialized as a base64 encoded data URI.
+    When using an image as an output data type for a function wrapped by ``@runway.command()``,
+    return a PIL or numpy image from your wrapped function and it will automatically
+    be serialized as a base64 encoded data URI.
 
     .. code-block:: python
 
@@ -283,8 +283,7 @@ class category(object):
 
 
 class number(object):
-    """A basic number data type. Instantiate this class to create a new runway model variable.::
-    test this code
+    """A basic number data type. Instantiate this class to create a new runway model variable.
 
     .. code-block:: python
 

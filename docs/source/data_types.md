@@ -1,6 +1,6 @@
 # Data Types
 
-The Runway Model SDK provides several data types that can be used to pass values to and from runway models and the applications that control them. The data types currently supported by the SDK are `number`, `text`, `image`, `array`, `vector`, `category`, `file`, and `any`, an extensible data type. These data types are primarily used anywhere in you use the Runway module, however they are most frequently used in two places:
+The Runway Model SDK provides several data types that can be used to pass values to and from runway models and the applications that control them. The data types currently supported by the SDK are `number`, `text`, `image`, `array`, `vector`, `category`, `file`, and `any`, an extensible data type. These data types are primarily used in two places:
 
 * The `options` parameter in the `@runway.setup()` decorator
 * The `input` and `output` parameters in `@runway.command()` decorator
