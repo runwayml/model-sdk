@@ -15,15 +15,32 @@ class RunwayError(Exception):
         self.message = 'An unknown error occurred.'
         self.code = 500
 
+    def get_traceback(self):
+        """Return a list of lines containing the traceback of the exception \
+        currently being handled.
+        
+        :return A list of lines of the exception traceback
+        :rtype list
+        """
+        _, _, tb = sys.exc_info()
+        traceback_lines = traceback.format_tb(tb)
+        return [l.strip() for l in traceback_lines]
+
+    def print(self):
+        """Print the exception message and traceback to stderr."""        
+        print('\033[91m', file=sys.stderr)
+        print(self.message)
+        for line in self.get_traceback():
+            print(line, file=sys.stderr)
+        print('\033[0m', file=sys.stderr)
+
     def to_response(self):
         """Get information about the error formatted as a dictionary.
 
         :return: An object containing "error" and "traceback" keys.
         :rtype: dict
         """
-        _, _, tb = sys.exc_info()
-        formatted_tb = ''.join(traceback.format_tb(tb))
-        return {'error': self.message, 'traceback': formatted_tb}
+        return {'error': self.message, 'traceback': self.get_traceback()}
 
 class MissingOptionError(RunwayError):
     """Thrown by the @runway.setup() decorator when a required option value \
@@ -85,7 +102,7 @@ class InferenceError(RunwayError):
     """
     def __init__(self, message):
         super(InferenceError, self).__init__()
-        self.message = 'Inference error: %s' % message
+        self.message = 'Error during inference: %s.' % message
         self.code = 500
 
 
@@ -117,7 +134,7 @@ class SetupError(RunwayError):
     """
     def __init__(self, message):
         super(SetupError, self).__init__()
-        self.message = 'Setup error: %s' % message
+        self.message = 'Error during setup: %s' % message
         self.code = 500
 
 
