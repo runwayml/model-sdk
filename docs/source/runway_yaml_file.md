@@ -75,4 +75,4 @@ build_steps:
     - `gpu` (boolean, optional, default = `True`): Create a GPU build.
 - `files` (object, optional): A dictionary that defines special behaviors for certain files. All values in this dictionary are specified as paths, with support for the glob character (e.g. `data/*.jpg`).
     - `ignore` (array of strings, optional): A list of file paths to exclude from the build.
-- `build_steps` (array of strings or dictionary values containing the `if_cpu` and `if_gpu` keys, optional): A list of shell commands to run at build time. Use this list to define custom build steps. Build steps are run in the order they appear in the array.
+- `build_steps` (array of strings or dictionary values containing the `if_cpu` and `if_gpu` keys, optional): A list of shell commands to run at build time. Use this list to define custom build steps. Build steps are run in the order they appear in the array. The `if_gpu` and `if_cpu` directives can be used to run build steps conditionally depending on the build environment.
