@@ -2,8 +2,8 @@
 
 The runway module exposes three simple functions that can be combined to expose your models to the Runway app using a simple interface.
 
-- [`@runway.setup()`](#runway.setup): A decorator used to initialize and configure your model.
-- [`@runway.command()`](#runway.command): A decorator used to define the interface to your model. Each command creates an HTTP route which can process user input and return outputs from the model.
+- [`@runway.setup()`](#runway.setup): A [Python decorator](https://www.thecodeship.com/patterns/guide-to-python-function-decorators/) used to initialize and configure your model.
+- [`@runway.command()`](#runway.command): A Python decorator used to define the interface to your model. Each command creates an HTTP route which can process user input and return outputs from the model.
 - [`runway.run()`](#runway.run): The entrypoint function that starts the SDK's HTTP interface. It fires the function decorated by `@runway.setup()` and listens for commands on the network, forwarding them along to the appropriate functions decorated with `@runway.command()`.
 
 ## Reference

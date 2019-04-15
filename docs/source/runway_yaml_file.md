@@ -1,10 +1,10 @@
 # Runway YAML File
 
-A `runway.yml` file is required to be in the root file directory of each Runway model. This file provides instructions for defining an environment, installing dependencies, and running your model in a standard and reproducible manner. These instructions are used by the Runway build pipeline to create a Docker image that can be run in a platform independent way on a local machine or a remote cloud GPU instance (although this process is abstracted away from the model builder). The `runway.yml` config file is written in [YAML](https://learnxinyminutes.com/docs/yaml/) and has a simple structure. You are free to copy and paste the example config file below, changing or removing the values that you need.
+A `runway.yml` file is required to be in the root file directory of each Runway model. This file provides instructions for defining an environment, installing dependencies, and running your model in a standard and reproducible manner. These instructions are used by the Runway build pipeline to create a Docker image that can be run in a platform independent way on a local machine or a remote GPU cloud instance (although this process is abstracted away from the model builder). The `runway.yml` config file is written in [YAML](https://learnxinyminutes.com/docs/yaml/) and has a simple structure. You are free to copy and paste the example config file below, changing or removing the values that you need.
 
 ```eval_rst
 .. note::
-    The Runway configuration file must be named ``runway.yml`` and exist in the root (top-level) directory of your model.
+    The Runway configuration file must be named ``runway.yml`` and exist in the root (top-level) directory of your model. Also, make sure you use the ``.yml`` file extension as the alternative ``.yaml`` extension is not supported.
 ```
 
 ## Example
@@ -13,7 +13,7 @@ A `runway.yml` file is required to be in the root file directory of each Runway 
 # Specify the version of the runway.yml spec.
 version: 0.1
 # Supported python versions are 2.7 and 3.6
-python: 3.7
+python: 3.6
 # The command to run your model. This value is used as the CMD value in
 # the generated Docker image.
 entrypoint: python runway_model.py
@@ -39,12 +39,11 @@ files:
     ignore:
         - my_dataset/*
         - secrets.txt
-# The build_steps array allows you to run shell commands during . Each build
-# step is translated to a Docker RUN command, and commands are run in the order
-# they appear in the array.
+# The build_steps array allows you to run shell commands at build time. Each
+# Each build step is executed in the order it appears in the array.
 build_steps:
-    # We recommend pinning to a version of the Runway Model SDK until the first
-    # major release as breaking changes may be introduced to the SDK
+    # We recommend pinning to a specific version of the Runway Model SDK until
+    # the first major release, as breaking changes may be introduced to the SDK
     - pip install runway-python==0.1.0
     - pip install -r requirements.txt
     # The if_gpu and if_cpu directives can be used to run build steps
@@ -76,4 +75,4 @@ build_steps:
     - `gpu` (boolean, optional, default = `True`): Create a GPU build.
 - `files` (object, optional): A dictionary that defines special behaviors for certain files. All values in this dictionary are specified as paths, with support for the glob character (e.g. `data/*.jpg`).
     - `ignore` (array of strings, optional): A list of file paths to exclude from the build.
-- `build_steps` (array of strings or dictionary values containing the `if_cpu` and `if_gpu` keys, optional): A list of shell commands to run at build time. Use this list to define custom build steps. Each build step is translated to a Docker RUN command, and commands are run in the order they appear in the array.
+- `build_steps` (array of strings or dictionary values containing the `if_cpu` and `if_gpu` keys, optional): A list of shell commands to run at build time. Use this list to define custom build steps. Build steps are run in the order they appear in the array.

@@ -2,7 +2,7 @@ import sys
 import traceback
 
 class RunwayError(Exception):
-    """A base error class that defines an HTTP error code, an error message, \
+    """A base error class that defines an HTTP error code, an error message,
     and can be formatted as an object to be returned as JSON in an HTTP request.
 
     :ivar message: An error message, set to "An unknown error occurred."
@@ -26,10 +26,10 @@ class RunwayError(Exception):
         return {'error': self.message, 'traceback': formatted_tb}
 
 class MissingOptionError(RunwayError):
-    """Thrown by the @runway.setup() decorator when a required option value \
+    """Thrown by the ``@runway.setup()`` decorator when a required option value
     has not been provided by the user.
 
-    :ivar message: An error message, set to "Missing option: \
+    :ivar message: An error message, set to "Missing option:
         {NAME_OF_MISSING_OPTION}"
     :type message: string
     :ivar code: An HTTP error code, set to 400
@@ -42,10 +42,10 @@ class MissingOptionError(RunwayError):
 
 
 class MissingInputError(RunwayError):
-    """Thrown by the @runway.command() decorator when a required input value \
+    """Thrown by the ``@runway.command()`` decorator when a required input value
     has not been provided by the user.
 
-    :ivar message: An error message, set to "Missing input: \
+    :ivar message: An error message, set to "Missing input:
         {NAME_OF_MISSING_OPTION}"
     :type message: string
     :ivar code: An HTTP error code, set to 400
@@ -58,10 +58,10 @@ class MissingInputError(RunwayError):
 
 
 class InvalidInputError(RunwayError):
-    """An error indicating that an input received by @runway.command() is \
+    """An error indicating that an input received by ``@runway.command()`` is
     invalid, given its data type.
 
-    :ivar message: An error message, set to "Invalid input: \
+    :ivar message: An error message, set to "Invalid input:
         {NAME_OF_MISSING_OPTION}"
     :type message: string
     :ivar code: An HTTP error code, set to 400
@@ -74,8 +74,8 @@ class InvalidInputError(RunwayError):
 
 
 class InferenceError(RunwayError):
-    """An error thrown if there is an uncaught exception in a function \
-    decorated by @runway.command(). If this error is thrown, there is an
+    """An error thrown if there is an uncaught exception in a function
+    decorated by ``@runway.command()``. If this error is thrown, there is an
     exception in your code ;)
 
     :ivar message: A repr() of original exception
@@ -90,10 +90,11 @@ class InferenceError(RunwayError):
 
 
 class UnknownCommandError(RunwayError):
-    """An error thrown if an HTTP request is made to an endpoint that doesn't \
-        exist. E.g. http://localhost:8000/nothing_here.
+    """
+    An error thrown if an HTTP request is made to an endpoint that doesn't
+    exist. E.g. ``http://localhost:8000/nothing_here``.
 
-    :ivar message: An error message, set to "Unknown command: \
+    :ivar message: An error message, set to "Unknown command:
         {COMMAND_NAME}"
     :type message: string
     :ivar code: An HTTP error code, set to 404
@@ -106,8 +107,8 @@ class UnknownCommandError(RunwayError):
 
 
 class SetupError(RunwayError):
-    """An error thrown if there is an uncaught exception in a function \
-    decorated by @runway.setup(). If this error is thrown, there is an
+    """An error thrown if there is an uncaught exception in a function
+    decorated by ``@runway.setup()``. If this error is thrown, there is an
     exception in your code ;)
 
     :ivar message: A repr() of original exception
@@ -124,7 +125,7 @@ class SetupError(RunwayError):
 class MissingArgumentError(RunwayError):
     """An error thrown when a required function argument is not provided.
 
-    :ivar message: An error message, set to "Missing argument: \
+    :ivar message: An error message, set to "Missing argument:
     {ARGUMENT_NAME}"
     :type message: string
     :ivar code: An HTTP error code, set to 500
