@@ -103,9 +103,20 @@ def test_array_serialization():
     expect = ['10', '100', '1000']
     assert expect == array(item_type=text).serialize([10, 100, 1000])
 
+    expect = ['one', 'two', 'three']
+    assert expect == array(item_type=text).serialize(['one', 'two', 'three'])
+
+    expect = [10, 100, 1000]
+    arr = array(item_type=vector(length=3))
+    assert expect == arr.serialize(np.array(expect))
+
 def test_array_deserialization():
-    expect = ['10', '100', '1000']
-    assert expect == array(item_type=text).deserialize(['10', '100', '1000'])
+    expect = ['one', 'two', 'three']
+    assert expect == array(item_type=text).deserialize(['one', 'two', 'three'])
+
+    expect = np.array([10, 100, 1000])
+    arr = array(item_type=vector(length=3))
+    assert np.array_equal(expect, arr.deserialize(expect.tolist()))
 
 # CATEGORY ---------------------------------------------------------------------
 def test_category_to_dict():
