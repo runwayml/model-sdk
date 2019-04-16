@@ -72,6 +72,7 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 html_logo = '_static/images/icon.png'
+html_favicon = '_static/images/favicon.png'
 
 # https://sphinx-rtd-theme.readthedocs.io/en/stable/configuring.html
 html_theme_options = {
