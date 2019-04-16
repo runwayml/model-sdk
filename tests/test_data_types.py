@@ -17,6 +17,13 @@ def check_data_type_interface(data_type):
     assert callable(data_type.deserialize)
     assert callable(data_type.to_dict)
 
+# We arbitrarily use this release tag to test file download and serialization
+def check_expected_contents_for_0057_tar_download(path):
+    readme_path = os.path.join(path, 'model-sdk-0.0.57', 'README.md')
+    assert os.path.isfile(readme_path)
+    with open(readme_path, 'r') as f:
+        assert f.read() == '# Runway Python SDK\n'
+
 # BASIC TESTS FOR ALL DATA TYPES -----------------------------------------------
 def test_data_type_interface_any():
     check_data_type_interface(any)
@@ -255,6 +262,7 @@ def test_file_deserialization_remote():
     url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
     path = f.deserialize(url)
     assert os.path.exists(path)
+    check_expected_contents_for_0057_tar_download(path)
 
 def test_file_deserialization_base_folder():
     f = file(is_folder=True)
@@ -273,6 +281,7 @@ def test_file_deserialization_remote_folder():
     url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
     path = f.deserialize(url)
     assert os.path.exists(path)
+    check_expected_contents_for_0057_tar_download(path)
 
 # IMAGE ------------------------------------------------------------------------
 def test_image_to_dict():
