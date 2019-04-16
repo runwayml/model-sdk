@@ -74,19 +74,20 @@ class MissingInputError(RunwayError):
         self.code = 400
 
 
-class InvalidInputError(RunwayError):
-    """An error indicating that an input received by ``@runway.command()`` is
-    invalid, given its data type.
+class InvalidArgumentError(RunwayError):
+    """An error indicating that an argument is invalid.
+    May be raised by ``@runway.setup()`` or ``@runway.command()`` decorated
+    functions if they receive a bad input value.
 
-    :ivar message: An error message, set to "Invalid input:
+    :ivar message: An error message, set to "Invalid argument:
         {NAME_OF_MISSING_OPTION}"
     :type message: string
     :ivar code: An HTTP error code, set to 400
     :type code: number
     """
     def __init__(self, name):
-        super(InvalidInputError, self).__init__()
-        self.message = 'Invalid input: %s.' % name
+        super(InvalidArgumentError, self).__init__()
+        self.message = 'Invalid argument: %s.' % name
         self.code = 400
 
 

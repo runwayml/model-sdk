@@ -143,6 +143,10 @@ def test_category_choices_empty_arr():
     with pytest.raises(MissingArgumentError):
         cat = category(choices=[])
 
+def test_category_default_not_in_choices():
+    with pytest.raises(InvalidArgumentError):
+        cat = category(choices=['one', 'two'], default='three')
+
 def test_category_default_choice():
     cat = category(choices=['one', 'two', 'three'], default='two')
     assert cat.default == 'two'
@@ -153,5 +157,5 @@ def test_category_default_choice_is_first_if_not_specified():
 
 def test_category_deserialized_value_is_not_in_choices():
     cat = category(choices=['one', 'two', 'three'])
-    with pytest.raises(InvalidInputError):
+    with pytest.raises(InvalidArgumentError):
         cat.deserialize('four')

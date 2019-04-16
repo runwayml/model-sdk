@@ -10,7 +10,7 @@ else:
 import numpy as np
 from PIL import Image
 from .utils import is_url, download_to_temp_dir, try_cast_np_scalar
-from .exceptions import MissingArgumentError, InvalidInputError
+from .exceptions import MissingArgumentError, InvalidArgumentError
 
 
 class any(object):
@@ -255,19 +255,25 @@ class category(object):
         :type choices: A list of strings
         :param default: A default list of categories, defaults to None
         :type default: A list of strings
-        :raises MissingArgumentError: A missing argument error if choices is \
+        :raises MissingArgumentError: A missing argument error if choices is
             not a list with at least one element.
+        :raises InvalidArgumentError: An invalid argument error if a default
+            argument is specified and that argument does not appear in the
+            choices list.
     """
 
     def __init__(self, name=None, choices=None, default=None):
         if choices is None or len(choices) == 0: raise MissingArgumentError('choices')
+        if default is not None and default not in choices:
+            msg = 'default argument {} is not in choices list'.format(default)
+            raise InvalidArgumentError(msg)
         self.name = name or 'category'
         self.choices = choices
         self.default = default or self.choices[0]
 
     def deserialize(self, value):
         if value not in self.choices:
-            raise InvalidInputError(self.name)
+            raise InvalidArgumentError(self.name)
         return value
 
     def serialize(self, value):

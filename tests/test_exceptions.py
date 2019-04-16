@@ -59,9 +59,9 @@ def test_missing_input_error():
     expect = 'Missing input: test_option.'
     check_code_and_error(MissingInputError, 400, expect, inpt='test_option')
 
-def test_invalid_input_error():
-    expect = 'Invalid input: test_option.'
-    check_code_and_error(InvalidInputError, 400, expect, inpt='test_option')
+def test_invalid_argument_error():
+    expect = 'Invalid argument: test_option.'
+    check_code_and_error(InvalidArgumentError, 400, expect, inpt='test_option')
 
 def test_inference_error():
     expect = 'Error during inference: test_option.'
