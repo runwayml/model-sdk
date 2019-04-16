@@ -166,7 +166,7 @@ class image(object):
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
-            raise InvalidInputError('value is not a PIL or numpy image')
+            raise InvalidArgumentError('value is not a PIL or numpy image')
         buffer = IO()
         im_pil.save(buffer, format='JPEG')
         return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
