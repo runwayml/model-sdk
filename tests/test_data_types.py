@@ -4,8 +4,10 @@ import sys
 sys.path.insert(0, '..')
 sys.path.insert(0, '.')
 
+import os
 import pytest
 import numpy as np
+from PIL import Image
 from runway.data_types import *
 from runway.exceptions import *
 
@@ -14,6 +16,13 @@ def check_data_type_interface(data_type):
     assert callable(data_type.serialize)
     assert callable(data_type.deserialize)
     assert callable(data_type.to_dict)
+
+# We arbitrarily use this release tag to test file download and serialization
+def check_expected_contents_for_0057_tar_download(path):
+    readme_path = os.path.join(path, 'model-sdk-0.0.57', 'README.md')
+    assert os.path.isfile(readme_path)
+    with open(readme_path, 'r') as f:
+        assert f.read() == '# Runway Python SDK\n'
 
 # BASIC TESTS FOR ALL DATA TYPES -----------------------------------------------
 def test_data_type_interface_any():
@@ -118,6 +127,32 @@ def test_array_deserialization():
     arr = array(item_type=vector(length=3))
     assert np.array_equal(expect, arr.deserialize(expect.tolist()))
 
+# VECTOR -----------------------------------------------------------------------
+def test_vector_to_dict():
+    vec = vector(length=128, sampling_mean=0, sampling_std=1)
+    obj = vec.to_dict()
+    assert obj['name'] == 'vector'
+    assert obj['type'] == 'vector'
+    assert obj['length'] == 128
+    assert obj['samplingMean'] == 0
+    assert obj['samplingStd'] == 1
+
+def test_vector_no_item_type():
+    with pytest.raises(MissingArgumentError):
+        vec = vector()
+
+def test_vector_serialization():
+    zeros = np.zeros(128)
+    serialized = vector(length=128).serialize(zeros)
+    assert np.array_equal(np.array(zeros), serialized)
+    assert type(serialized) == list
+
+def test_vector_deserialization():
+    zeros = np.zeros(128)
+    deserialized = vector(length=128).deserialize(zeros)
+    assert np.array_equal(zeros.tolist(), deserialized)
+    assert isinstance(deserialized, np.ndarray)
+
 # CATEGORY ---------------------------------------------------------------------
 def test_category_to_dict():
     cat = category(choices=['one', 'two', 'three'], default='two')
@@ -159,3 +194,128 @@ def test_category_deserialized_value_is_not_in_choices():
     cat = category(choices=['one', 'two', 'three'])
     with pytest.raises(InvalidArgumentError):
         cat.deserialize('four')
+
+# FILE -------------------------------------------------------------------------
+def test_file_to_dict():
+    f = file()
+    obj = f.to_dict()
+    assert obj['name'] == 'file'
+    assert obj['type'] == 'file'
+
+def test_file_to_dict_folder():
+    f = file(is_folder=True)
+    obj = f.to_dict()
+    assert obj['name'] == 'file'
+    assert obj['type'] == 'file'
+    assert obj['isFolder'] == True
+
+def test_file_serialization_base():
+    f = file()
+    assert 'file.txt' == f.serialize('file.txt')
+
+def test_file_serialization_relative():
+    f = file()
+    assert 'folder/file.txt' == f.serialize('folder/file.txt')
+
+def test_file_serialization_absolute():
+    f = file()
+    assert '/home/user/file.txt' == f.serialize('/home/user/file.txt')
+
+def test_file_serialization_remote():
+    f = file()
+    url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
+    assert url == f.serialize(url)
+## TODO: accept ftp:// protocol
+#     url = 'ftp://demo:password@test.rebex.net/readme.txt'
+#     assert url == f.serialize(url)
+
+def test_file_serialization_base_folder():
+    f = file(is_folder=True)
+    assert 'folder' == f.serialize('folder')
+
+def test_file_serialization_relative_folder():
+    f = file(is_folder=True)
+    assert 'folder/folder' == f.serialize('folder/folder')
+
+def test_file_serialization_absolute_folder():
+    f = file(is_folder=True)
+    assert '/home/user/folder' == f.serialize('/home/user/folder')
+
+def test_file_serialization_remote_folder():
+    f = file(is_folder=True)
+    url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
+    assert url == f.serialize(url)
+## TODO: accept ftp:// protocol
+#     url = 'ftp://demo:password@test.rebex.net/'
+#     assert url == f.serialize(url)
+
+def test_file_deserialization_base():
+    f = file()
+    assert 'file.txt' == f.deserialize('file.txt')
+
+def test_file_deserialization_relative():
+    f = file()
+    assert 'folder/file.txt' == f.deserialize('folder/file.txt')
+
+def test_file_deserialization_absolute():
+    f = file()
+    assert '/home/user/file.txt' == f.deserialize('/home/user/file.txt')
+
+def test_file_deserialization_remote():
+    f = file()
+    url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
+    path = f.deserialize(url)
+    assert os.path.exists(path)
+    check_expected_contents_for_0057_tar_download(path)
+
+def test_file_deserialization_base_folder():
+    f = file(is_folder=True)
+    assert 'folder' == f.deserialize('folder')
+
+def test_file_deserialization_relative_folder():
+    f = file(is_folder=True)
+    assert 'folder/folder' == f.deserialize('folder/folder')
+
+def test_file_deserialization_absolute_folder():
+    f = file(is_folder=True)
+    assert '/home/user/folder' == f.deserialize('/home/user/folder')
+
+def test_file_deserialization_remote_folder():
+    f = file(is_folder=True)
+    url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
+    path = f.deserialize(url)
+    assert os.path.exists(path)
+    check_expected_contents_for_0057_tar_download(path)
+
+# IMAGE ------------------------------------------------------------------------
+def test_image_to_dict():
+    img = image(channels=3, min_width=128, min_height=128, max_width=512, max_height=512)
+    obj = img.to_dict()
+    assert obj['type'] == 'image'
+    assert obj['name'] == 'image'
+    assert obj['channels'] == 3
+    assert obj['minWidth'] == 128
+    assert obj['maxWidth'] == 512
+    assert obj['minHeight'] == 128
+    assert obj['maxHeight'] == 512
+
+def test_image_serialize_and_deserialize():
+    folder = os.path.dirname(os.path.realpath(__file__))
+    img = Image.open(os.path.join(folder, 'test_image.jpg'))
+    serialized_pil = image().serialize(img)
+    deserialized_pil = image().deserialize(serialized_pil)
+    assert issubclass(type(deserialized_pil), Image.Image)
+
+    serialize_np_img = image().serialize(np.asarray(img))
+    deserialize_np_img = image().deserialize(serialize_np_img)
+    assert issubclass(type(deserialize_np_img), Image.Image)
+
+def test_image_serialize_invalid_type():
+    with pytest.raises(InvalidInputError):
+        image().serialize(True)
+
+    with pytest.raises(InvalidInputError):
+        image().serialize([])
+
+    with pytest.raises(InvalidInputError):
+        image().serialize('data:image/jpeg;base64,')

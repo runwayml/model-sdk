@@ -163,8 +163,10 @@ class image(object):
     def serialize(self, value):
         if type(value) is np.ndarray:
             im_pil = Image.fromarray(value)
-        elif type(value) is Image.Image:
+        elif issubclass(type(value), Image.Image):
             im_pil = value
+        else:
+            raise InvalidInputError('value is not a PIL or numpy image')
         buffer = IO()
         im_pil.save(buffer, format='JPEG')
         return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
@@ -175,7 +177,7 @@ class image(object):
         ret['name'] = self.name
         ret['channels'] = self.channels
         if self.min_width: ret['minWidth'] = self.min_width
-        if self.max_width: ret['maxHeight'] = self.max_width
+        if self.max_width: ret['maxWidth'] = self.max_width
         if self.min_height: ret['minHeight'] = self.min_height
         if self.max_height: ret['maxHeight'] = self.max_height
         if self.width: ret['width'] = self.width
