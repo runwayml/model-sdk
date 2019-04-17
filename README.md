@@ -1,4 +1,4 @@
-# Runway Model SDK
+![Runway Model SDK](https://runway.nyc3.digitaloceanspaces.com/documentation/github_banners/model_sdk.png)
 
 [![CircleCI branch](https://img.shields.io/circleci/project/github/runwayml/model-sdk/master.svg)](https://circleci.com/gh/runwayml/model-sdk/tree/master)
 [![docs](https://readthedocs.org/projects/runway-model-sdk/badge/?version=latest&style=flat)](https://sdk.runwayml.com)
