@@ -1,6 +1,8 @@
-<p align="center">
-  <img src="./assets/sdk.png">
-</p>
+<a href="#" target='_self' >
+  <p align="center">
+    <img src="./assets/sdk.png">
+  </p>
+</a>
 
 
 [![CircleCI branch](https://img.shields.io/circleci/project/github/runwayml/model-sdk/master.svg)](https://circleci.com/gh/runwayml/model-sdk/tree/master)
