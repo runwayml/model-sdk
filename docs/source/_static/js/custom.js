@@ -4,3 +4,9 @@
 if (location.protocol != 'https:') {
  location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
 }
+
+// Hide RTD search.
+window.addEventListener('load', function() {
+  var s = document.getElementsByClassName("injected")
+  s[0].children[4].style.display = 'none';
+})
