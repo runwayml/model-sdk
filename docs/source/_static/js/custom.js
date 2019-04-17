@@ -9,6 +9,6 @@ if (location.protocol != 'https:') {
 
 window.document.onload = function(){ 
   var s = document.getElementsByClassName("injected")
-  s[0].children[3].style.display = 'none';
+  s[0].children[4].style.display = 'none';
 }
 

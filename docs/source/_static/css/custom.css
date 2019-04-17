@@ -361,7 +361,3 @@ a.reference.internal {
     color: #28ad60 !important;
     border-left: 3px solid #28ad60 !important;
 }
-
-.rst-other-versions dl:last-child{
-    display: none !important;
-}
