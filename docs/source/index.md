@@ -80,7 +80,7 @@ Each Runway model must have a `runway.yml` configuration file in its root direct
 
 ```yaml
 version: 0.1
-python: 3.7
+python: 3.6
 entrypoint: python runway_model.py
 cuda: 9.2
 framework: tensorflow
