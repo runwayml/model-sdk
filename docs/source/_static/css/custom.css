@@ -354,3 +354,10 @@ a.reference.internal {
 .wy-side-nav-search>div.version {
     color: #2c2c2c !important;
 }
+
+.rst-other-versions dt {
+    background: #1e1c1c !important;
+    padding: 0 5px !important;
+    color: #28ad60 !important;
+    border-left: 3px solid #28ad60 !important;
+}
