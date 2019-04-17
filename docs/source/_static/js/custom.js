@@ -6,9 +6,8 @@ if (location.protocol != 'https:') {
 }
 
 // Hide RTD search.
-
-window.document.onload = function(){ 
+window.addEventListener('load', function() {
   var s = document.getElementsByClassName("injected")
   s[0].children[4].style.display = 'none';
-}
-
+  console.log('search hide')
+})
