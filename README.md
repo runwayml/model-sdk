@@ -20,7 +20,7 @@ The SDK supports both Python 2.7 and Python 3, but we recommend using Python 3. 
 pip3 install runway-python
 ```
 
-Now head over to [the docs](https://sdk.runwayml.com) to learn how to use the Runway Model SDK.
+Now head over to [the sdk docs](https://sdk.runwayml.com) to learn how to use the Runway Model SDK.
 
 ## Docs
 
