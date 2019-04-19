@@ -1,6 +1,6 @@
 <a href="#" target='_self' >
   <p align="center">
-    <img src="./assets/sdk.png">
+    <img src="https://runway.nyc3.digitaloceanspaces.com/assets/github/cover_sdk_github.png">
   </p>
 </a>
 
