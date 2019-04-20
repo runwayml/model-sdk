@@ -58,8 +58,8 @@ jobs:
       - run:
           name: install python dependencies
           command: |
-            conda create -n dev python=2.7 pip
-            conda activate dev
+            conda create -y -n dev python=2.7 pip
+            source activate dev
             make dev
       - save_cache:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}-{{ checksum "requirements.txt" }}
