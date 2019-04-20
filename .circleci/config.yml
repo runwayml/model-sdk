@@ -50,7 +50,7 @@ jobs:
             bash <(curl -s https://codecov.io/bash)
   build-py27:
     docker:
-      - image: circleci/python:2.7
+      - image: continuumio/miniconda:latest
     steps:
       - checkout
       - restore_cache:
@@ -58,13 +58,13 @@ jobs:
       - run:
           name: install python dependencies
           command: |
-            python2 -m virtualenv venv
-            . venv/bin/activate
+            conda create -n dev python=2.7 pip
+            conda activate dev
             make dev
       - save_cache:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}-{{ checksum "requirements.txt" }}
           paths:
-            - "venv"
+            - "/opt/conda/envs/dev/"
       - run:
           name: run tests
           command: |
