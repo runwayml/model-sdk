@@ -4,3 +4,4 @@ numpy>=1.15.0
 Pillow>=4.3.0
 gevent>=1.4.0
 wget>=3.2
+six>=1.12.0
