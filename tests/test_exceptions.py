@@ -78,3 +78,16 @@ def test_setup_error():
 def test_missing_argument_error():
     expect = 'Missing argument: test_option.'
     check_code_and_error(MissingArgumentError, 500, expect, inpt='test_option')
+
+def test_print_exception(capsys):
+    def foo(): raise RunwayError()
+    def bar(): foo()
+    try:
+        bar()
+    except RunwayError as err:
+        err.print_exception()
+        captured = capsys.readouterr()
+        assert err.message in captured.err
+        assert 'in foo' in captured.err
+        assert 'in bar' in captured.err
+        assert 'raise RunwayError' in captured.err
