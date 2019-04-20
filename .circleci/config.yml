@@ -53,12 +53,20 @@ jobs:
       - image: circleci/python:2.7
     steps:
       - checkout
+      - restore_cache:
+          key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}-{{ checksum "requirements.txt" }}
       - run:
           name: install python dependencies
           command: |
-            pip install --user -r requirements.txt
-            pip install --user -r requirements-dev.txt
+            python2 -m virtualenv venv
+            . venv/bin/activate
+            make dev
+      - save_cache:
+          key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}-{{ checksum "requirements.txt" }}
+          paths:
+            - "venv"
       - run:
           name: run tests
-          command: make test
-
+          command: |
+            . venv/bin/activate
+            make test

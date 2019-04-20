@@ -1,4 +1,4 @@
-.PHONY: clean test test-debug coverage coverage-codecov package dev clean-package clean-docs clean-coverage docs publish-release
+.PHONY: clean test test-debug coverage coverage-codecov package dev dev-docs clean-package clean-docs clean-coverage docs publish-release
 
 all: dev test
 
@@ -24,6 +24,8 @@ package:
 dev:
 	pip install -e .
 	pip install -r requirements-dev.txt
+
+dev-docs:
 	pip install -r requirements-docs.txt
 
 clean-package:
