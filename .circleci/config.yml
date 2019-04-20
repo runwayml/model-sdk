@@ -58,8 +58,7 @@ jobs:
       - run:
           name: install python dependencies
           command: |
-            pip install virtualenv
-            virtualenv venv
+            sudo virtualenv venv
             . venv/bin/activate
             pip install -r requirements.txt
       - save_cache:
