@@ -5,10 +5,10 @@ all: dev test
 clean: clean-docs clean-package clean-coverage
 
 test:
-	python -m pytest tests
+	pytest tests
 
 test-debug:
-	python -m pytest tests -s
+	pytest tests -s
 
 coverage:
 	pytest --cov-report html --cov runway --disable-warnings tests

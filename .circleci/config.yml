@@ -73,4 +73,5 @@ jobs:
       - run:
           name: run tests
           command: |
+            source activate dev
             make test
