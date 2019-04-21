@@ -68,9 +68,10 @@ class RunwayModel(object):
                 deserialized_inputs = {}
                 for inp in inputs:
                     name = inp.name
-                    if name not in input_dict:
+                    if name not in input_dict and getattr(inp, 'default', None) is None:
                         raise MissingInputError(name)
-                    deserialized_inputs[name] = inp.deserialize(input_dict[name])
+                    value = input_dict[name] or getattr(inp, 'default', None)
+                    deserialized_inputs[name] = inp.deserialize(value)
                 try:
                     results = command_fn(self.model, deserialized_inputs)
                     if type(results) != dict:
@@ -79,7 +80,7 @@ class RunwayModel(object):
                         results = {}
                         results[name] = value
                 except Exception as err:
-                    raise reraise(InferenceError, repr(err), sys.exc_info()[2])
+                    raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
 
                 serialized_outputs = {}
                 for out in outputs:
@@ -260,7 +261,7 @@ class RunwayModel(object):
             try:
                 self.model = self.setup_fn(deserialized_opts)
             except Exception as err:
-                raise reraise(SetupError, repr(err), sys.exc_info()[2])
+                raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         elif self.setup_fn:
             self.model = self.setup_fn()
         self.running_status = 'RUNNING'
