@@ -26,13 +26,13 @@ class RunwayError(Exception):
         traceback_lines = traceback.format_tb(tb)
         return [l.strip() for l in traceback_lines]
 
-    def print(self):
+    def print_exception(self):
         """Print the exception message and traceback to stderr."""
-        print('\033[91m', file=sys.stderr)
-        print(self.message)
+        sys.stderr.write('\033[91m\n')
+        sys.stderr.write(self.message + '\n')
         for line in self.get_traceback():
-            print(line, file=sys.stderr)
-        print('\033[0m', file=sys.stderr)
+            sys.stderr.write(line + '\n')
+        sys.stderr.write('\033[0m' + '\n')
 
     def to_response(self):
         """Get information about the error formatted as a dictionary.

@@ -56,8 +56,8 @@ The Model SDK documentation is generated from inline source code using docstring
 ## Create and activate a python3 virtual environment if you need to.
 # virtualenv -p python3 venv && source ./venv/bin/activate
 
-# make sure you have the dev dependencies installed
-make dev
+# make sure you have the docs dependencies installed
+make dev-docs
 
 # build the docs
 make docs

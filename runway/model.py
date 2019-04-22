@@ -4,6 +4,7 @@ import logging
 import datetime
 import traceback
 import json
+from six import reraise
 from flask import Flask, request
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
@@ -47,7 +48,7 @@ class RunwayModel(object):
                 self.setup_model(opts)
                 return json.dumps(dict(success=True))
             except RunwayError as err:
-                err.print()
+                err.print_exception()
                 return json.dumps(err.to_response()), err.code
 
         @self.app.route('/setup', methods=['GET'])
@@ -67,9 +68,10 @@ class RunwayModel(object):
                 deserialized_inputs = {}
                 for inp in inputs:
                     name = inp.name
-                    if name not in input_dict:
+                    if name not in input_dict and getattr(inp, 'default', None) is None:
                         raise MissingInputError(name)
-                    deserialized_inputs[name] = inp.deserialize(input_dict[name])
+                    value = input_dict[name] or getattr(inp, 'default', None)
+                    deserialized_inputs[name] = inp.deserialize(value)
                 try:
                     results = command_fn(self.model, deserialized_inputs)
                     if type(results) != dict:
@@ -78,7 +80,7 @@ class RunwayModel(object):
                         results = {}
                         results[name] = value
                 except Exception as err:
-                    raise InferenceError(repr(err)).with_traceback(sys.exc_info()[2])
+                    raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
 
                 serialized_outputs = {}
                 for out in outputs:
@@ -87,7 +89,7 @@ class RunwayModel(object):
                 return json.dumps(serialized_outputs).encode('utf8')
 
             except RunwayError as err:
-                err.print()
+                err.print_exception()
                 return json.dumps(err.to_response()), err.code
 
         @self.app.route('/<command_name>', methods=['GET'])
@@ -99,7 +101,7 @@ class RunwayModel(object):
                     raise UnknownCommandError(command_name)
                 return json.dumps(serialize_command(command))
             except RunwayError as err:
-                err.print()
+                err.print_exception()
                 return json.dumps(err.to_response())
 
     def setup(self, decorated_fn=None, options=None):
@@ -259,7 +261,7 @@ class RunwayModel(object):
             try:
                 self.model = self.setup_fn(deserialized_opts)
             except Exception as err:
-                raise SetupError(repr(err)).with_traceback(sys.exc_info()[2])
+                raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         elif self.setup_fn:
             self.model = self.setup_fn()
         self.running_status = 'RUNNING'
@@ -362,7 +364,7 @@ class RunwayModel(object):
         try:
             self.setup_model(model_options)
         except RunwayError as err:
-            err.print()
+            err.print_exception()
             sys.exit(1)
         print('Starting model server at http://{0}:{1}...'.format(host, port))
         if debug:
