@@ -28,7 +28,7 @@ Reference and documentation for the Runway Model SDK is hosted at [sdk.runwayml.
 
 The [Runway Model Template repo](https://github.com/runwayml/model-template) also contains a simple example of how to get started porting a model to Runway.
 
-See the *Importing Models into Runway* [tutorial](http://localhost:4000/#/importing) for a walk-through illustrating how to port a model to Runway.
+See the *Importing Models into Runway* [tutorial](https://docs.runwayapp.ai/#/importing) for a walk-through illustrating how to port a model to Runway.
 
 ## Developing
 
