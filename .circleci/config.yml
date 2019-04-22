@@ -63,7 +63,7 @@ jobs:
       - run:
           name: install python dependencies
           command: |
-            conda create -y -n dev python=2.7 pip
+            conda create -y --force -n dev python=2.7 pip
             source activate dev
             make dev
       - save_cache:
