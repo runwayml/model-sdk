@@ -266,7 +266,7 @@ class RunwayModel(object):
             self.model = self.setup_fn()
         self.running_status = 'RUNNING'
 
-    def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False):
+    def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False, no_serve=False):
         """Run the model and start listening for HTTP requests on the network.
         By default, the server will run on port ``8000`` and listen on all
         network interfaces (``0.0.0.0``).
@@ -312,6 +312,15 @@ class RunwayModel(object):
             the Runway model at runtime. This value will be overwritten by the
             ``RW_META`` environment variable if it is present.
         :type meta: boolean, optional
+        :param no_serve: Don't start the Flask server, defaults to ``False``
+            (i.e. the Flask server is started by default when the
+            ``runway.run()`` function is called without setting this argument
+            set to True). This functionality is used during automated testing to
+            mock HTTP requests using Flask's ``app.test_client()``
+            (see Flask's testing_ docs for more details).
+        :type meta: boolean, optional
+
+        .. _testing: http://flask.pocoo.org/docs/1.0/testing/
 
         .. warning::
             All keyword arguments to the ``runway.run()`` function will be
@@ -337,20 +346,30 @@ class RunwayModel(object):
               argument. ``RW_DEBUG=1`` enables debug mode.
             - ``RW_META``: Defines the behavior of the ``runway.run()``
               function. If ``RW_META=1`` the function prints the model's options
-              and commands as JSON and then exits. This environment variables
-              overwrites any value passed as the ``meta`` keyward argument.
+              and commands as JSON and then exits. This environment variable
+              overwrites any value passed as the ``meta`` keyword argument.
+            - ``RW_NO_SERVE``: Forces ``runway.run()`` to not start its Flask
+              server. This environment variable overwrites any value passed as
+              the ``no_serve`` keyword argument.
         """
 
         env_host          = os.getenv('RW_HOST')
         env_port          = os.getenv('RW_PORT')
         env_meta          = os.getenv('RW_META')
         env_debug         = os.getenv('RW_DEBUG')
+        env_no_serve      = os.getenv('RW_NO_SERVE')
         env_model_options = os.getenv('RW_MODEL_OPTIONS')
 
-        if env_host is not None:  host = env_host
-        if env_port is not None:  port = int(env_port)
-        if env_meta is not None:  meta = bool(int(env_meta))
-        if env_debug is not None: debug = bool(int(env_debug))
+        if env_host is not None:
+            host = env_host
+        if env_port is not None:
+            port = int(env_port)
+        if env_meta is not None:
+            meta = bool(int(env_meta))
+        if env_debug is not None:
+            debug = bool(int(env_debug))
+        if env_no_serve is not None:
+            no_serve = bool(int(env_no_serve))
         if env_model_options is not None:
             model_options = json.loads(env_model_options)
 
@@ -366,14 +385,17 @@ class RunwayModel(object):
         except RunwayError as err:
             err.print_exception()
             sys.exit(1)
-        print('Starting model server at http://{0}:{1}...'.format(host, port))
-        if debug:
-            logging.basicConfig(level=logging.DEBUG)
-            self.app.debug = True
-            self.app.run(host=host, port=port, debug=True, threaded=True)
+        if no_serve:
+            print('Not starting model server because "no_serve" directive is present.')
         else:
-            http_server = WSGIServer((host, port), self.app)
-            try:
-                http_server.serve_forever()
-            except KeyboardInterrupt:
-                print('Stopping server...')
+            print('Starting model server at http://{0}:{1}...'.format(host, port))
+            if debug:
+                logging.basicConfig(level=logging.DEBUG)
+                self.app.debug = True
+                self.app.run(host=host, port=port, debug=True, threaded=True)
+            else:
+                http_server = WSGIServer((host, port), self.app)
+                try:
+                    http_server.serve_forever()
+                except KeyboardInterrupt:
+                    print('Stopping server...')
