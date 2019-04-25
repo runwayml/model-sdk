@@ -11,11 +11,16 @@ from runway.model import RunwayModel
 from runway.data_types import category, text, number, array, image, vector, file, any as any_type
 from runway.exceptions import *
 from utils import get_test_client
+from deepdiff import DeepDiff
 
 os.environ['RW_NO_SERVE'] = '1'
 
 # Testing Flask Applications: http://flask.pocoo.org/docs/1.0/testing/
 def test_model_setup_and_command():
+
+    # use a dict to share state across function scopes. This makes up for the
+    # fact that Python 2.x doesn't have support for the 'nonlocal' keyword.
+    closure = dict(setup_ran = False, command_ran = False)
 
     expected_manifest = {
         'options': [{
@@ -43,23 +48,18 @@ def test_model_setup_and_command():
         }]
     }
 
-    setup_ran = False
-    command_ran = False
-
     rw = RunwayModel()
 
     @rw.setup(options={ 'size': category(choices=['big', 'small']) })
     def setup(opts):
-        nonlocal setup_ran
-        setup_ran = True
+        closure['setup_ran'] = True
         return {}
 
     inputs = { 'input': text }
     outputs = { 'output': number }
     @rw.command('test_command', inputs=inputs, outputs=outputs)
     def test_command(model, opts):
-        nonlocal command_ran
-        command_ran = True
+        closure['command_ran'] = True
         return 100
 
     rw.run(debug=True)
@@ -82,8 +82,8 @@ def test_model_setup_and_command():
     response = client.post('/test_command', json=post_data)
     assert json.loads(response.data) == { 'output' : 100 }
 
-    assert command_ran == True
-    assert setup_ran == True
+    assert closure['command_ran'] == True
+    assert closure['setup_ran'] == True
 
 def test_model_status():
     rw = RunwayModel()
@@ -99,31 +99,38 @@ def test_model_healthcheck():
     assert response.data == b'RUNNING'
 
 def test_model_setup_no_arguments():
+
+    # use a dict to share state across function scopes. This makes up for the
+    # fact that Python 2.x doesn't have support for the 'nonlocal' keyword.
+    closure = dict(setup_ran = False)
+
     rw = RunwayModel()
-    setup_ran = False
+
     # Any reason @rw.setup called with no arguments requires the decorated
     # function NOT to have arguments? This seems a bit like an idiosyncracy to
     # me. Why not keep the function signature of the wrapped function the
     # same regardless and simply pass an empty dict in the case of no options?
     @rw.setup
     def setup():
-        nonlocal setup_ran
-        setup_ran = True
+        closure['setup_ran'] = True
 
     rw.run(debug=True)
-    assert setup_ran == True
+    assert closure['setup_ran'] == True
 
 def test_model_options_passed_as_arguments_to_run():
+
+    # use a dict to share state across function scopes. This makes up for the
+    # fact that Python 2.x doesn't have support for the 'nonlocal' keyword.
+    closure = dict(setup_ran = False)
+
     rw = RunwayModel()
-    setup_ran = False
     @rw.setup(options={'initialization_array': array(item_type=text)})
     def setup(opts):
-        nonlocal setup_ran
         assert opts['initialization_array'] == ['one', 'two', 'three']
-        setup_ran = True
+        closure['setup_ran'] = True
 
     rw.run(debug=True, model_options={ 'initialization_array': ['one', 'two', 'three'] })
-    assert setup_ran == True
+    assert closure['setup_ran'] == True
 
 def test_model_options_missing():
 
@@ -173,64 +180,123 @@ def test_meta(capsys):
         pass
 
     expected_manifest = {
-        "options": [{
-            "name": "initialization_array",
-            "type": "array",
-            "itemType": {
-                "type": "text",
-                "name": "text",
-                "default": "",
-                "minLength": 0
+        'options': [
+            {
+                'minLength': 0,
+                'type': 'array',
+                'name': 'initialization_array',
+                'itemType': {
+                    'default': '',
+                    'minLength': 0,
+                    'type': 'text',
+                    'name': 'text'
+                }
+            }
+        ],
+        'commands': [
+            {
+                'name': 'command_2',
+                'inputs': [
+                    {
+                        'type': 'any',
+                        'name': 'any',
+                    },
+                    {
+                        'type': 'file',
+                        'name': 'file',
+                    },
+                ],
+                'outputs': [
+                    {
+                        'name': 'number',
+                        'min': 10,
+                        'default': 0,
+                        'max': 100,
+                        'step': 1,
+                        'type': 'number',
+                    },
+                ]
             },
-            "minLength": 0
-        }],
-        "commands": [{
-            "name": "command_1",
-            "inputs": [{
-                "type": "image",
-                "name": "image",
-                "channels": 3
-            }, {
-                "type": "vector",
-                "name": "vector",
-                "length": 32,
-                "samplingMean": 0,
-                "samplingStd": 1
-            }],
-            "outputs": [{
-                "type": "text",
-                "name": "label",
-                "default": "",
-                "minLength": 0
-            }]
-        },
-        {
-            "name": "command_2",
-            "inputs": [{
-                "type": "any",
-                "name": "any"
-                }, {
-                "type": "file",
-                "name": "file"
-            }],
-            "outputs": [{
-                "type": "number",
-                "name": "number",
-                "default": 0,
-                "min": 10,
-                "max": 100,
-                "step": 1
-            }]
-        }]
+            {
+                'name': 'command_1',
+                'inputs': [
+                    {
+                        'channels': 3,
+                        'type': 'image',
+                        'name': 'image',
+                    },
+                    {
+                        'samplingMean': 0,
+                        'length': 32,
+                        'type': 'vector',
+                        'name': 'vector',
+                        'samplingStd': 1,
+                    },
+                ],
+                'outputs': [
+                    {
+                        'default': '',
+                        'minLength': 0,
+                        'type': 'text',
+                        'name': 'label'
+                    }
+                ]
+            }
+        ]
     }
 
-    meta_before = os.environ.get('RW_META')
+    # RW_META should not be set during testing
     os.environ['RW_META'] = '1'
 
     rw.run(debug=True, model_options={ 'initialization_array': ['one', 'two', 'three'] })
     std = capsys.readouterr()
-    assert json.loads(std.out) == expected_manifest
+    manifest = json.loads(std.out.strip('\n'))
+
+    # DeepDiff is required here because Python2 handles stdin encoding strangely
+    # and because dict order is not guaranteed in Python2. I ran up a tree
+    # trying to get this comparison working without relying on a lib, but
+    # ultimately it was just wasting my time.
+    diff = DeepDiff(manifest, expected_manifest, ignore_order=True)
+    assert len(diff.keys()) == 0
     assert std.err == ''
 
-    if meta_before is not None: os.environ['RW_META'] = meta_before
+    os.environ['RW_META'] = '0'
 
+def test_setup_error_setup_no_args():
+
+    rw = RunwayModel()
+
+    @rw.setup
+    def setup():
+        raise Exception('test exception, thrown from inside a wrapped setup() function')
+
+    with pytest.raises(SystemExit):
+        with pytest.raises(SetupError):
+            rw.run(debug=True)
+
+
+def test_setup_error_setup_with_args():
+
+    rw = RunwayModel()
+
+    @rw.setup(options={'input': text})
+    def setup(opts):
+        raise Exception('test exception, thrown from inside a wrapped setup() function')
+
+    with pytest.raises(SystemExit):
+        with pytest.raises(SetupError):
+            rw.run(debug=True)
+
+def test_inference_error():
+
+    rw = RunwayModel()
+    client = get_test_client(rw)
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        raise Exception('test exception, thrown from inside a wrapped command() function')
+
+    rw.run(debug=True)
+
+    response = client.post('test_command', json={ 'input': 5 })
+    assert 'InferenceError' in str(response.data)

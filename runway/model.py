@@ -263,7 +263,10 @@ class RunwayModel(object):
             except Exception as err:
                 raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         elif self.setup_fn:
-            self.model = self.setup_fn()
+            try:
+                self.model = self.setup_fn()
+            except Exception as err:
+                raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         self.running_status = 'RUNNING'
 
     def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False, no_serve=False):

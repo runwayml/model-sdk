@@ -5,6 +5,7 @@ build
 deploy.sh
 .vscode
 venv
+venv2.7
 .coverage
 .DS_Store
 htmlcov
