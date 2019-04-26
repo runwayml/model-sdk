@@ -13,6 +13,7 @@ else:
     from io import BytesIO as IO
 import numpy as np
 from flask import after_this_request, request
+import colorsys
 
 
 URL_REGEX = re.compile(
@@ -96,3 +97,15 @@ def cast_to_obj(cls_or_obj):
     if inspect.isclass(cls_or_obj):
         return cls_or_obj()
     return cls_or_obj
+
+
+# Generate random colormap, adapted from https://github.com/delestro/rand_cmap/blob/master/rand_cmap.py
+def random_color_map(n_labels):
+    hsv_colors = [(np.random.uniform(low=0.0, high=1),
+                   np.random.uniform(low=0.2, high=1),
+                   np.random.uniform(low=0.9, high=1)) for i in range(n_labels)]
+    rgb_colors = []
+    for hsv_color in hsv_colors:
+        rgb_colors.append(colorsys.hsv_to_rgb(hsv_color[0], hsv_color[1], hsv_color[2]))
+    rgb_colors[0] = [0, 0, 0]
+    return [[round(r*255), round(g*255), round(b*255)] for r, g, b in rgb_colors]

@@ -9,7 +9,7 @@ else:
     from io import BytesIO as IO
 import numpy as np
 from PIL import Image
-from .utils import is_url, download_to_temp_dir, try_cast_np_scalar
+from .utils import is_url, download_to_temp_dir, try_cast_np_scalar, random_color_map
 from .exceptions import MissingArgumentError, InvalidArgumentError
 
 
@@ -425,4 +425,49 @@ class file(object):
         ret['type'] = 'file'
         ret['name'] = self.name
         if self.is_folder: ret['isFolder'] = self.is_folder
+        return ret
+
+
+class semantic_map(object):
+    def __init__(self, name=None, default_label=None, label_map=None, color_map=None, width=None, height=None):
+        if label_map is None:
+            raise MissingArgumentError('label_map')
+        if type(label_map) is not dict or len(label_map.keys()) == 0:
+            msg = 'label_map argument has invalid type'
+            raise InvalidArgumentError(msg)
+        if default_label is not None and default_label not in label_map.values():
+            msg = 'default_label {} is not in label map'.format(default_label)
+            raise InvalidArgumentError(msg)
+        if color_map and set(color_map.keys()) != set(label_map.values()):
+            msg = 'color_map argument does not cover all labels'
+            raise InvalidArgumentError(msg)
+        self.name = name or 'semantic_map'
+        self.label_map = label_map
+        self.default_label = default_label or list(self.label_map.values())[0]
+        self.color_map = color_map or self.generate_color_map()
+        self.width = width
+        self.height = height
+
+    def generate_color_map(self):
+        colors = random_color_map(len(self.label_map.keys()))
+        color_map = {}
+        for label, color in zip(self.label_map.values(), colors):
+            color_map[label] = color
+        return color_map
+
+    def deserialize(self, value):
+        return np.array(value)
+
+    def serialize(self, value):
+        return value.tolist()
+
+    def to_dict(self):
+        ret = {}
+        ret['type'] = 'semantic_map'
+        ret['name'] = self.name
+        ret['defaultLabel'] = self.default_label
+        ret['labelMap'] = self.label_map
+        ret['colorMap'] = self.color_map
+        ret['width'] = self.width
+        ret['height'] = self.height
         return ret
