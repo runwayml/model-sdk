@@ -153,6 +153,10 @@ def test_vector_deserialization():
     assert np.array_equal(zeros.tolist(), deserialized)
     assert isinstance(deserialized, np.ndarray)
 
+def test_vector_default():
+    vector_type = vector(length=5, sampling_mean=42)
+    assert np.array_equal(vector_type.default, [42, 42, 42, 42, 42])
+
 # CATEGORY ---------------------------------------------------------------------
 def test_category_to_dict():
     cat = category(choices=['one', 'two', 'three'], default='two')
