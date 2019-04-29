@@ -155,7 +155,7 @@ def test_meta(capsys):
     kwargs_1 = {
         'inputs': {
             'image': image,
-            'vector': vector(length=32)
+            'vector': vector(length=5)
         },
         'outputs': {
             'label': text
@@ -227,10 +227,11 @@ def test_meta(capsys):
                     },
                     {
                         'samplingMean': 0,
-                        'length': 32,
+                        'length': 5,
                         'type': 'vector',
                         'name': 'vector',
                         'samplingStd': 1,
+                        'default': [0, 0, 0, 0, 0]
                     },
                 ],
                 'outputs': [

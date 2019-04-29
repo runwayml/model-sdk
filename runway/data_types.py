@@ -212,12 +212,20 @@ class vector(object):
     :type sampling_std: float, optional
     :raises MissingArgumentError: A missing argument error if length is not specified
     """
-    def __init__(self, length=None, name=None, sampling_mean=0, sampling_std=1):
-        if length is None: raise MissingArgumentError('length')
+    def __init__(self, length=None, name=None, default=None, sampling_mean=0, sampling_std=1):
+        if default is not None:
+            if length is None:
+                length = len(default)
+            elif len(default) != length:
+                msg = 'default argument does not match expected length'
+                raise InvalidArgumentError(msg)
+        if length is None:
+            raise MissingArgumentError('length')
         self.name = name or 'vector'
         self.length = length
         self.sampling_mean = sampling_mean
         self.sampling_std = sampling_std
+        self.default = default or np.full((length,), sampling_mean).tolist()
 
     def deserialize(self, value):
         return np.array(value)
@@ -232,6 +240,7 @@ class vector(object):
         ret['length'] = self.length
         ret['samplingMean'] = self.sampling_mean
         ret['samplingStd'] = self.sampling_std
+        ret['default'] = self.default
         return ret
 
 
