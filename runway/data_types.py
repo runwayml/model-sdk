@@ -213,11 +213,14 @@ class vector(object):
     :raises MissingArgumentError: A missing argument error if length is not specified
     """
     def __init__(self, length=None, name=None, default=None, sampling_mean=0, sampling_std=1):
+        if default is not None:
+            if length is None:
+                length = len(default)
+            elif len(default) != length:
+                msg = 'default argument does not match expected length'
+                raise InvalidArgumentError(msg)
         if length is None:
             raise MissingArgumentError('length')
-        if default is not None and len(default) != length:
-            msg = 'default argument does not match expected length'
-            raise InvalidArgumentError(msg)
         self.name = name or 'vector'
         self.length = length
         self.sampling_mean = sampling_mean

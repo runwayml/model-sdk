@@ -161,6 +161,10 @@ def test_vector_invalid_default():
     with pytest.raises(InvalidArgumentError):
         vector_type = vector(length=5, default=[42, 42, 42, 42])
 
+def test_vector_default_no_length_arg():
+    vector_type = vector(default=[42, 42])
+    assert vector_type.length == 2
+
 # CATEGORY ---------------------------------------------------------------------
 def test_category_to_dict():
     cat = category(choices=['one', 'two', 'three'], default='two')
