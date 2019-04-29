@@ -12,7 +12,7 @@ from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
 from .utils import gzipped, serialize_command, cast_to_obj
-from .__version__ import __version__ as modelSDKVersion
+from .__version__ import __version__ as model_sdk_version
 
 class RunwayModel(object):
     """A Runway Model server. A singleton instance of this class is created automatically
@@ -34,7 +34,7 @@ class RunwayModel(object):
         @self.app.route('/')
         def manifest():
             return json.dumps(dict(
-                modelSDKVersion=modelSDKVersion,
+                modelSDKVersion=model_sdk_version,
                 options=[opt.to_dict() for opt in self.options],
                 commands=[serialize_command(cmd) for cmd in self.commands.values()]
             ))

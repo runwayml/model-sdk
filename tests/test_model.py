@@ -8,7 +8,7 @@ import os
 import json
 import pytest
 from runway.model import RunwayModel
-from runway.__version__ import __version__ as modelSDKVersion
+from runway.__version__ import __version__ as model_sdk_version
 from runway.data_types import category, text, number, array, image, vector, file, any as any_type
 from runway.exceptions import *
 from utils import get_test_client
@@ -24,7 +24,7 @@ def test_model_setup_and_command():
     closure = dict(setup_ran = False, command_ran = False)
 
     expected_manifest = {
-        'modelSDKVersion': modelSDKVersion,
+        'modelSDKVersion': model_sdk_version,
         'options': [{
             'type': 'category',
             'name': 'size',
