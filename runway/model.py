@@ -11,7 +11,7 @@ from gevent.pywsgi import WSGIServer
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
-from .utils import gzipped, serialize_command, cast_to_obj
+from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis
 from .__version__ import __version__ as model_sdk_version
 
 class RunwayModel(object):
@@ -20,6 +20,8 @@ class RunwayModel(object):
     """
 
     def __init__(self):
+        self.millis_run_started_at = None
+        self.millis_last_command = None
         self.options = []
         self.setup_fn = None
         self.commands = {}
@@ -35,6 +37,9 @@ class RunwayModel(object):
         def manifest():
             return json.dumps(dict(
                 modelSDKVersion=model_sdk_version,
+                millisRunning=self.millis_running(),
+                millisSinceLastCommand=self.millis_since_last_command(),
+                GPU=os.environ.get('GPU') == '1',
                 options=[opt.to_dict() for opt in self.options],
                 commands=[serialize_command(cmd) for cmd in self.commands.values()]
             ))
@@ -76,6 +81,7 @@ class RunwayModel(object):
                     deserialized_inputs[name] = inp.deserialize(value)
                 try:
                     results = command_fn(self.model, deserialized_inputs)
+                    self.millis_last_command = timestamp_millis()
                     if type(results) != dict:
                         name = outputs[0].name
                         value = results
@@ -105,6 +111,14 @@ class RunwayModel(object):
             except RunwayError as err:
                 err.print_exception()
                 return json.dumps(err.to_response())
+
+    def millis_running(self):
+        if self.millis_run_started_at is None: return None
+        return timestamp_millis() - self.millis_run_started_at
+
+    def millis_since_last_command(self):
+        if self.millis_last_command is None: return None
+        return timestamp_millis() - self.millis_last_command
 
     def setup(self, decorated_fn=None, options=None):
         """This decorator is used to wrap your own ``setup()`` (or equivalent)
@@ -390,6 +404,9 @@ class RunwayModel(object):
         except RunwayError as err:
             err.print_exception()
             sys.exit(1)
+
+        # start the run started at millis timer even if we don't actually serve
+        self.millis_run_started_at = timestamp_millis()
         if no_serve:
             print('Not starting model server because "no_serve" directive is present.')
         else:
