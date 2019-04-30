@@ -12,6 +12,7 @@ from runway.data_types import category, text, number, array, image, vector, file
 from runway.exceptions import *
 from utils import get_test_client
 from deepdiff import DeepDiff
+from flask import abort
 
 os.environ['RW_NO_SERVE'] = '1'
 
@@ -68,11 +69,15 @@ def test_model_setup_and_command():
 
     # check the manifest via a GET /
     response = client.get('/')
+    assert response.is_json
+
     manifest = json.loads(response.data)
     assert manifest == expected_manifest
 
     # check the input/output manifest for GET /test_command
     response = client.get('/test_command')
+    assert response.is_json
+
     command_manifest = json.loads(response.data)
     assert command_manifest == expected_manifest['commands'][0]
 
@@ -80,6 +85,7 @@ def test_model_setup_and_command():
         'input': 'test input'
     }
     response = client.post('/test_command', json=post_data)
+    assert response.is_json
     assert json.loads(response.data) == { 'output' : 100 }
 
     assert closure['command_ran'] == True
@@ -263,6 +269,213 @@ def test_meta(capsys):
 
     os.environ['RW_META'] = '0'
 
+def test_post_setup_json_no_mime_type():
+
+    rw = RunwayModel()
+
+    @rw.setup(options={'input': text})
+    def setup(opts):
+        pass
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/setup', data='{"input": "test input"}')
+    assert response.is_json
+    assert json.loads(response.data) == { 'success': True }
+
+def test_post_setup_invalid_json_no_mime_type():
+
+    rw = RunwayModel()
+
+    @rw.setup(options={'input': text})
+    def setup(opts):
+        pass
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/setup', data='{"input": test input"}')
+
+    assert response.is_json
+    assert response.status_code == 400
+
+    expect = { 'error': 'The body of all POST requests must contain JSON' }
+    assert json.loads(response.data) == expect
+
+
+def test_post_setup_json_mime_type():
+
+    rw = RunwayModel()
+
+    @rw.setup(options={'input': text})
+    def setup(opts):
+        pass
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/setup', json={ 'input': 'test input' })
+    assert response.is_json
+    assert json.loads(response.data) == { 'success': True }
+
+def test_post_setup_form_encoding():
+
+    rw = RunwayModel()
+
+    @rw.setup(options={'input': text})
+    def setup(opts):
+        pass
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    content_type='application/x-www-form-urlencoded'
+    response = client.post('/setup', data='input=test', content_type=content_type)
+
+    assert response.is_json
+    assert response.status_code == 400
+
+    expect = { 'error': 'The body of all POST requests must contain JSON' }
+    assert json.loads(response.data) == expect
+
+def test_post_command_json_no_mime_type():
+
+    rw = RunwayModel()
+
+    @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
+    def times_two(model, args):
+        return args['input'] * 2
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/times_two', data='{ "input": 5 }')
+    assert response.is_json
+    assert json.loads(response.data) == { 'output': 10 }
+
+def test_post_command_json_mime_type():
+
+    rw = RunwayModel()
+
+    @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
+    def times_two(model, args):
+        return args['input'] * 2
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/times_two', json={ 'input': 5 })
+    assert response.is_json
+    assert json.loads(response.data) == { 'output': 10 }
+
+def test_post_command_form_encoding():
+
+    rw = RunwayModel()
+
+    @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
+    def times_two(model, args):
+        return args['input'] * 2
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    content_type='application/x-www-form-urlencoded'
+    response = client.post('/times_two', data='input=5', content_type=content_type)
+    assert response.is_json
+    assert response.status_code == 400
+
+    expect = { 'error': 'The body of all POST requests must contain JSON' }
+    assert json.loads(response.data) == expect
+
+def test_405_method_not_allowed():
+
+    rw = RunwayModel()
+
+    @rw.setup(options={'input': text})
+    def setup(opts):
+        pass
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.put('/setup', json= { 'input': 'test input'})
+
+    assert response.is_json
+    assert response.status_code == 405
+    assert response.json == { 'error': 'Method not allowed.' }
+
+def test_404_not_found():
+
+    rw = RunwayModel()
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.get('/asfd')
+
+    assert response.is_json
+    assert response.status_code == 404
+
+def test_401_unauthorized():
+
+    rw = RunwayModel()
+
+    @rw.app.route('/test/unauthorized')
+    def unauthorized():
+        abort(401)
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.get('/test/unauthorized')
+
+    assert response.is_json
+    assert response.status_code == 401
+
+    expect = { 'error': 'Unauthorized (well... really unauthenticated but hey I didn\'t write the spec).' }
+    assert response.json == expect
+
+def test_403_forbidden():
+
+    rw = RunwayModel()
+
+    @rw.app.route('/test/forbidden')
+    def unauthorized():
+        abort(403)
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.get('/test/forbidden')
+
+    assert response.is_json
+    assert response.status_code == 403
+
+    expect = { 'error': 'Forbidden.' }
+    assert response.json == expect
+
+def test_500_internal_server_error():
+
+    rw = RunwayModel()
+
+    @rw.app.route('/test/internal_server_error')
+    def unauthorized():
+        abort(500)
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.get('/test/internal_server_error')
+
+    assert response.is_json
+    assert response.status_code == 500
+
+    expect = { 'error': 'Internal server error.' }
+    assert response.json == expect
+
 def test_setup_error_setup_no_args():
 
     rw = RunwayModel()
@@ -300,4 +513,5 @@ def test_inference_error():
     rw.run(debug=True)
 
     response = client.post('test_command', json={ 'input': 5 })
+    assert response.is_json
     assert 'InferenceError' in str(response.data)
