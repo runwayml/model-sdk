@@ -7,6 +7,7 @@ import os
 import functools
 import sys
 import gzip
+import datetime
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
@@ -109,3 +110,7 @@ def cast_to_obj(cls_or_obj):
     if inspect.isclass(cls_or_obj):
         return cls_or_obj()
     return cls_or_obj
+
+def timestamp_millis():
+    offset = datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)
+    return int(offset.total_seconds() * 1000)

@@ -2,6 +2,15 @@
 
 ## v0.0.70
 
+- Move `/` meta endpoint to `/meta` and specify `GET` as the only allowed method (its still available via `/` for backwards compatibility).
+- `/healthcheck` endpoint now returns JSON (e.g. `{ "status": "RUNNING" }`)
+- Limit `/healthcheck` to only allow HTTP methods.
+- Add `modelSDKVersion` to manifest at `GET /meta`.
+- Add `millisRunning` to manifest at `GET /meta`.
+- Add `millisSinceLastCommand` to manifest at `GET /meta`.
+- Add `GPU` to manifest at `GET /meta` so that a model's GPU accessibility can be determined at runtime.
+- Add undocumented `millis_running()` and `millis_since_last_command()` to `RunwayModel`.
+- Add `default` parameter to `vector` data type.
 - Model server now wraps common server error codes in JSON responses (e.g. 401, 403, 404, 405, 500).
 - Model server now sniffs the body of `POST` for JSON even if `content-type: application/json` is not sent in the request header. [#1](https://github.com/runwayml/model-sdk/issues/1)
 - Model server now returns `content-type: application/json`. [#6](https://github.com/runwayml/model-sdk/issues/6)
