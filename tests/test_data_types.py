@@ -19,7 +19,7 @@ def check_data_type_interface(data_type):
 
 # We arbitrarily use this release tag to test file download and serialization
 def check_expected_contents_for_0057_tar_download(path):
-    readme_path = os.path.join(path, 'model-sdk-0.0.57', 'README.md')
+    readme_path = os.path.join(path, 'README.md')
     assert os.path.isfile(readme_path)
     with open(readme_path, 'r') as f:
         assert f.read() == '# Runway Python SDK\n'

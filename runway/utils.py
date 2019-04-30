@@ -7,6 +7,7 @@ import os
 import functools
 import sys
 import gzip
+import glob
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
@@ -44,7 +45,7 @@ def download_to_temp_dir(url):
     tar.extractall(path=tmp_path)
     tar.close()
     os.remove(fname)
-    return tmp_path
+    return glob.glob(os.path.join(tmp_path, '*'))[0]
 
 
 def gzip_decompress(data):
