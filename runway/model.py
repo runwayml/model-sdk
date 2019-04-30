@@ -66,7 +66,9 @@ class RunwayModel(object):
             return jsonify(dict(error='Internal server error.')), 500
 
     def define_routes(self):
-        @self.app.route('/')
+
+        @self.app.route('/', methods=['GET'])
+        @self.app.route('/meta', methods=['GET'])
         def manifest():
             return jsonify(dict(
                 modelSDKVersion=model_sdk_version,
@@ -77,9 +79,9 @@ class RunwayModel(object):
                 commands=[serialize_command(cmd) for cmd in self.commands.values()]
             ))
 
-        @self.app.route('/healthcheck')
+        @self.app.route('/healthcheck', methods=['GET'])
         def healthcheck_route():
-            return self.running_status
+            return jsonify(dict(status=self.running_status))
 
         @self.app.route('/setup', methods=['POST'])
         @validate_post_request_body_is_json

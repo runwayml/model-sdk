@@ -73,6 +73,20 @@ def test_model_setup_and_command():
 
     client = get_test_client(rw)
 
+    response = client.get('/meta')
+    assert response.is_json
+
+    manifest = json.loads(response.data)
+
+    # unset millisRunning as we can't reliably predict this value.
+    # testing that it is an int should be good enough.
+    assert type(manifest['millisRunning']) == int
+    manifest['millisRunning'] = None
+
+    assert manifest == expected_manifest
+
+    # TEMPORARILY CHECK / PATH IN ADDITION TO /meta ----------------------------
+    # ... sorry for the gross dupe code ;)
     response = client.get('/')
     assert response.is_json
 
@@ -84,6 +98,7 @@ def test_model_setup_and_command():
     manifest['millisRunning'] = None
 
     assert manifest == expected_manifest
+    # --------------------------------------------------------------------------
 
     # check the input/output manifest for GET /test_command
     response = client.get('/test_command')
@@ -118,7 +133,8 @@ def test_model_healthcheck():
     rw.run(debug=True)
     client = get_test_client(rw)
     response = client.get('/healthcheck')
-    assert response.data == b'RUNNING'
+    assert response.is_json
+    assert response.json == { 'status': 'RUNNING' }
 
 def test_model_setup_no_arguments():
 
