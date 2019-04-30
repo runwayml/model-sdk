@@ -144,6 +144,50 @@ def test_model_options_missing():
         with pytest.raises(MissingOptionError):
             rw.run(debug=True)
 
+def test_setup_invalid_category():
+
+    rw = RunwayModel()
+    @rw.setup(options={'category': category(choices=['Starks', 'Lannisters'])})
+    def setup(opts):
+        pass
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/setup', json={ 'category': 'Tyrells' })
+
+    assert response.status_code == 400
+    json_response = json.loads(response.data)
+    assert 'error' in json_response
+    # ensure the user is displayed an error that indicates the category option
+    # is problematic
+    assert 'Invalid argument: category' in json_response['error']
+    # ensure the user is displayed an error that indicates the problematic value
+    assert 'Tyrells' in json_response['error']
+
+def test_command_invalid_category():
+
+    rw = RunwayModel()
+    inputs = {'category': category(choices=['Starks', 'Lannisters'])}
+    outputs = {'reflect': text }
+    @rw.command('test_command', inputs=inputs, outputs=outputs)
+    def test_command(opts):
+        return opts['category']
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/test_command', json={ 'category': 'Targaryen' })
+
+    assert response.status_code == 400
+    json_response = json.loads(response.data)
+    assert 'error' in json_response
+    # ensure the user is displayed an error that indicates the category option
+    # is problematic
+    assert 'Invalid argument: category' in json_response['error']
+    # ensure the user is displayed an error that indicates the problematic value
+    assert 'Targaryen' in json_response['error']
+
 def test_meta(capsys):
 
     rw = RunwayModel()

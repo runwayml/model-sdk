@@ -284,7 +284,8 @@ class category(object):
 
     def deserialize(self, value):
         if value not in self.choices:
-            raise InvalidArgumentError(self.name)
+            msg = 'category value "%s" does not appear in choices list.' % value
+            raise InvalidArgumentError(self.name, msg)
         return value
 
     def serialize(self, value):
