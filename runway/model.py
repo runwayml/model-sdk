@@ -80,8 +80,8 @@ class RunwayModel(object):
                     value = input_dict[name] or getattr(inp, 'default', None)
                     deserialized_inputs[name] = inp.deserialize(value)
                 try:
-                    results = command_fn(self.model, deserialized_inputs)
                     self.millis_last_command = timestamp_millis()
+                    results = command_fn(self.model, deserialized_inputs)
                     if type(results) != dict:
                         name = outputs[0].name
                         value = results
