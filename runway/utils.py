@@ -12,7 +12,7 @@ if sys.version_info[0] < 3:
 else:
     from io import BytesIO as IO
 import numpy as np
-from flask import after_this_request, request
+from flask import after_this_request, request, jsonify
 
 
 URL_REGEX = re.compile(
@@ -23,6 +23,19 @@ URL_REGEX = re.compile(
         r'(?::\d+)?' # optional port
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
+def validate_post_request_body_is_json(f):
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        json = get_json_or_none_if_invalid(request)
+        if json is not None:
+            return f(*args, **kwargs)
+        else:
+            err_msg = 'The body of all POST requests must contain JSON'
+            return jsonify(dict(error=err_msg)), 400
+    return wrapped
+
+def get_json_or_none_if_invalid(request):
+    return request.get_json(force=True, silent=True)
 
 def serialize_command(cmd):
     ret = {}
