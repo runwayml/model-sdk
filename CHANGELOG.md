@@ -2,6 +2,9 @@
 
 ## v0.0.70
 
+- Model server now wraps common server error codes in JSON responses (e.g. 401, 403, 404, 405, 500).
+- Model server now sniffs the body of `POST` for JSON even if `content-type: application/json` is not sent in the request header. [#1](https://github.com/runwayml/model-sdk/issues/1)
+- Model server now returns `content-type: application/json`. [#6](https://github.com/runwayml/model-sdk/issues/6)
 - Add `RW_NO_SERVE` environment variable and `no_serve` keyword argument to `runway.run()`. These settings prevent `runway.run()` from starting the Flask server so that mock HTTP requests can be made via `app.test_client()`. See [Testing Flask Applications](http://flask.pocoo.org/docs/1.0/testing/) for more details.
 - Add model tests in [`tests/test_model.py`](tests/test_model.py)
 - Minor change to `docs/` so that JavaScript HTTP -> HTTPS redirect only occurs when the protocol is actually `http:`.
