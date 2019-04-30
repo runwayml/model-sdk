@@ -121,7 +121,7 @@ class RunwayModel(object):
                 for out in outputs:
                     name = out.to_dict()['name']
                     serialized_outputs[name] = out.serialize(results[name])
-                return jsonify(json.loads(json.dumps(serialized_outputs).encode('utf8')))
+                return jsonify(serialized_outputs)
 
             except RunwayError as err:
                 err.print_exception()
