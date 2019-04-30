@@ -5,13 +5,14 @@ import datetime
 import traceback
 import json
 from six import reraise
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
-from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis
+from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
+        validate_post_request_body_is_json, get_json_or_none_if_invalid
 from .__version__ import __version__ as model_sdk_version
 
 class RunwayModel(object):
@@ -30,12 +31,44 @@ class RunwayModel(object):
         self.running_status = 'STARTING'
         self.app = Flask(__name__)
         CORS(self.app)
+        self.define_error_handlers()
         self.define_routes()
+
+    def define_error_handlers(self):
+
+        # not yet implemented, but if and when it is lets make sure its returned
+        # as JSON
+        @self.app.errorhandler(401)
+        def unauthorized(e):
+            msg = 'Unauthorized (well... '
+            msg += 'really unauthenticated but hey I didn\'t write the spec).'
+            return jsonify(dict(error=msg)), 401
+
+        # not yet implemented, but if and when it is lets make sure its returned
+        # as JSON
+        @self.app.errorhandler(403)
+        def forbidden(e):
+            return jsonify(dict(error='Forbidden.')), 403
+
+        @self.app.errorhandler(404)
+        def page_not_found(e):
+            return jsonify(dict(error='Not found.')), 404
+
+        @self.app.errorhandler(405)
+        def method_not_allowed(e):
+            return jsonify(dict(error='Method not allowed.')), 405
+
+        # we shouldn't have any of these as we are wrapping errors in
+        # RunwayError objects and returning stacktraces, but it can't hurt
+        # to be safe.
+        @self.app.errorhandler(500)
+        def internal_server_error(e):
+            return jsonify(dict(error='Internal server error.')), 500
 
     def define_routes(self):
         @self.app.route('/')
         def manifest():
-            return json.dumps(dict(
+            return jsonify(dict(
                 modelSDKVersion=model_sdk_version,
                 millisRunning=self.millis_running(),
                 millisSinceLastCommand=self.millis_since_last_command(),
@@ -49,20 +82,22 @@ class RunwayModel(object):
             return self.running_status
 
         @self.app.route('/setup', methods=['POST'])
+        @validate_post_request_body_is_json
         def setup_route():
-            opts = request.json
+            opts = get_json_or_none_if_invalid(request)
             try:
                 self.setup_model(opts)
-                return json.dumps(dict(success=True))
+                return jsonify(dict(success=True))
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response()), err.code
+                return jsonify(err.to_response()), err.code
 
         @self.app.route('/setup', methods=['GET'])
         def setup_options_route():
-            return json.dumps(self.options)
+            return jsonify(self.options)
 
         @self.app.route('/<command_name>', methods=['POST'])
+        @validate_post_request_body_is_json
         def command_route(command_name):
             try:
                 try:
@@ -71,7 +106,7 @@ class RunwayModel(object):
                     raise UnknownCommandError(command_name)
                 inputs = self.commands[command_name]['inputs']
                 outputs = self.commands[command_name]['outputs']
-                input_dict = request.json
+                input_dict = get_json_or_none_if_invalid(request)
                 deserialized_inputs = {}
                 for inp in inputs:
                     name = inp.name
@@ -94,11 +129,11 @@ class RunwayModel(object):
                 for out in outputs:
                     name = out.to_dict()['name']
                     serialized_outputs[name] = out.serialize(results[name])
-                return json.dumps(serialized_outputs).encode('utf8')
+                return jsonify(serialized_outputs)
 
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response()), err.code
+                return jsonify(err.to_response()), err.code
 
         @self.app.route('/<command_name>', methods=['GET'])
         def usage_route(command_name):
@@ -107,10 +142,10 @@ class RunwayModel(object):
                     command = self.commands[command_name]
                 except KeyError:
                     raise UnknownCommandError(command_name)
-                return json.dumps(serialize_command(command))
+                return jsonify(serialize_command(command))
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response())
+                return jsonify(err.to_response()), err.code
 
     def millis_running(self):
         if self.millis_run_started_at is None: return None
