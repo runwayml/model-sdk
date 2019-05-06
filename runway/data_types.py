@@ -420,10 +420,10 @@ class file(object):
     :type is_directory: bool, optional
     """
 
-    def __init__(self, name=None, is_directory=False, suffix=None):
+    def __init__(self, name=None, is_directory=False, extension=None):
         self.name = name or 'file'
         self.is_directory = is_directory
-        self.suffix = suffix
+        self.extension = extension
 
     def deserialize(self, path_or_url):
         if is_url(path_or_url):
@@ -435,8 +435,8 @@ class file(object):
         else:
             if not os.path.exists(path_or_url):
                 raise InvalidArgumentError('file path provided does not exist')
-            if self.suffix and not path_or_url.endswith(self.suffix):
-                raise InvalidArgumentError('file path does not have expected suffix')
+            if self.extension and not path_or_url.endswith(self.extension):
+                raise InvalidArgumentError('file path does not have expected extension')
             return path_or_url
 
     def serialize(self, value):
@@ -447,5 +447,5 @@ class file(object):
         ret['type'] = 'file'
         ret['name'] = self.name
         if self.is_directory: ret['isDirectory'] = self.is_directory
-        if self.suffix: ret['suffix'] = self.suffix
+        if self.extension: ret['extension'] = self.extension
         return ret

@@ -278,9 +278,9 @@ def test_file_deserialization_not_exist():
     with pytest.raises(InvalidArgumentError):
         file().deserialize('file-that-does-not-exist.txt')
 
-def test_file_deserialization_invalid_suffix():
+def test_file_deserialization_invalid_extension():
     with pytest.raises(InvalidArgumentError):
-        file(suffix='.txt').deserialize('README.md')
+        file(extension='.txt').deserialize('README.md')
 
 def test_file_deserialization_remote():
     f = file()
