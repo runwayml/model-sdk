@@ -3,13 +3,15 @@ import math
 import base64
 import inspect
 import json
+import os
+import tarfile
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
     from io import BytesIO as IO
 import numpy as np
 from PIL import Image
-from .utils import is_url, download_to_temp_dir, try_cast_np_scalar
+from .utils import is_url, extract_tarball, try_cast_np_scalar, download_file
 from .exceptions import MissingArgumentError, InvalidArgumentError
 
 
@@ -396,7 +398,7 @@ class text(object):
 
 
 class file(object):
-    """A data type that represents a file or folder. The file can be a local \
+    """A data type that represents a file or directory. The file can be a local \
         resource on disk or a remote resource loaded over HTTP. \
         Instantiate this class to create a new runway model variable.
 
@@ -405,27 +407,39 @@ class file(object):
         import runway
         from runway.data_types import file, category
 
-        inputs = {"folder": file(is_folder=True)}
+        inputs = {"directory": file(is_directory=True)}
         outputs = {"result": category(choices=["success", "failure"])}
         @runway.command("batch_process", inputs=inputs, outputs=outputs)
         def batch_process(result_of_setup, args):
-            result = do_something_with(args["folder"])
+            result = do_something_with(args["directory"])
             return { "result": "success" if result else "failure" }
 
     :param name: The name of this variable, defaults to None
     :type name: string, optional
-    :param is_folder: Does this variable represent a folder instead of a file? Defaults to False.
-    :type is_folder: bool, optional
+    :param is_directory: Does this variable represent a directory instead of a file? Defaults to False.
+    :type is_directory: bool, optional
+    :param extension: Accept only files of this extension.
+    :type extension: string, optional
     """
 
-    def __init__(self, name=None, is_folder=False):
+    def __init__(self, name=None, is_directory=False, extension=None):
         self.name = name or 'file'
-        self.is_folder = is_folder
+        self.is_directory = is_directory
+        self.extension = extension
 
-    def deserialize(self, value):
-        if is_url(value):
-            return download_to_temp_dir(value)
-        return value
+    def deserialize(self, path_or_url):
+        if is_url(path_or_url):
+            downloaded_path = download_file(path_or_url)
+            if tarfile.is_tarfile(downloaded_path):
+                return extract_tarball(downloaded_path)
+            else:
+                return downloaded_path
+        else:
+            if not os.path.exists(path_or_url):
+                raise InvalidArgumentError('file path provided does not exist')
+            if self.extension and not path_or_url.endswith(self.extension):
+                raise InvalidArgumentError('file path does not have expected extension')
+            return path_or_url
 
     def serialize(self, value):
         return value
@@ -434,5 +448,6 @@ class file(object):
         ret = {}
         ret['type'] = 'file'
         ret['name'] = self.name
-        if self.is_folder: ret['isFolder'] = self.is_folder
+        if self.is_directory: ret['isDirectory'] = self.is_directory
+        if self.extension: ret['extension'] = self.extension
         return ret
