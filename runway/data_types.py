@@ -3,13 +3,15 @@ import math
 import base64
 import inspect
 import json
+import os
+import tarfile
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
     from io import BytesIO as IO
 import numpy as np
 from PIL import Image
-from .utils import is_url, download_to_temp_dir, try_cast_np_scalar
+from .utils import is_url, extract_tarball, try_cast_np_scalar, download_file
 from .exceptions import MissingArgumentError, InvalidArgumentError
 
 
@@ -418,14 +420,24 @@ class file(object):
     :type is_folder: bool, optional
     """
 
-    def __init__(self, name=None, is_folder=False):
+    def __init__(self, name=None, is_folder=False, suffix=None):
         self.name = name or 'file'
         self.is_folder = is_folder
+        self.suffix = suffix
 
-    def deserialize(self, value):
-        if is_url(value):
-            return download_to_temp_dir(value)
-        return value
+    def deserialize(self, path_or_url):
+        if is_url(path_or_url):
+            downloaded_path = download_file(path_or_url)
+            if tarfile.is_tarfile(downloaded_path):
+                return extract_tarball(downloaded_path)
+            else:
+                return downloaded_path
+        else:
+            if not os.path.exists(path_or_url):
+                raise InvalidArgumentError('file path provided does not exist')
+            if self.suffix and not path_or_url.endswith(self.suffix):
+                raise InvalidArgumentError('file path does not have expected suffix')
+            return path_or_url
 
     def serialize(self, value):
         return value
@@ -435,4 +447,5 @@ class file(object):
         ret['type'] = 'file'
         ret['name'] = self.name
         if self.is_folder: ret['isFolder'] = self.is_folder
+        if self.suffix: ret['suffix'] = self.suffix
         return ret

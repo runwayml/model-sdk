@@ -50,15 +50,17 @@ def is_url(path):
     return re.match(URL_REGEX, path)
 
 
-def download_to_temp_dir(url):
-    print('Downloading file: %s' % url)
-    tmp_path = tempfile.mkdtemp()
-    fname = wget.download(url)
-    tar = tarfile.open(fname, "r:gz")
-    tar.extractall(path=tmp_path)
+def download_file(url):
+    download_dir = tempfile.mkdtemp()
+    return wget.download(url, out=download_dir)
+
+
+def extract_tarball(path):
+    extracted_dir = tempfile.mkdtemp()
+    tar = tarfile.open(path, "r:*")
+    tar.extractall(path=extracted_dir)
     tar.close()
-    os.remove(fname)
-    return tmp_path
+    return extracted_dir
 
 
 def gzip_decompress(data):

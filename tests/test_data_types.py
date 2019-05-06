@@ -18,6 +18,12 @@ def check_data_type_interface(data_type):
     assert callable(data_type.to_dict)
 
 # We arbitrarily use this release tag to test file download and serialization
+def check_expected_contents_for_0057_file_download(path):
+    assert os.path.isfile(path)
+    with open(path, 'r') as f:
+        assert f.read() == '# Runway Python SDK\n'
+
+# We arbitrarily use this release tag to test file download and serialization
 def check_expected_contents_for_0057_tar_download(path):
     readme_path = os.path.join(path, 'model-sdk-0.0.57', 'README.md')
     assert os.path.isfile(readme_path)
@@ -237,9 +243,6 @@ def test_file_serialization_remote():
     f = file()
     url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
     assert url == f.serialize(url)
-## TODO: accept ftp:// protocol
-#     url = 'ftp://demo:password@test.rebex.net/readme.txt'
-#     assert url == f.serialize(url)
 
 def test_file_serialization_base_folder():
     f = file(is_folder=True)
@@ -257,40 +260,46 @@ def test_file_serialization_remote_folder():
     f = file(is_folder=True)
     url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
     assert url == f.serialize(url)
-## TODO: accept ftp:// protocol
-#     url = 'ftp://demo:password@test.rebex.net/'
-#     assert url == f.serialize(url)
 
 def test_file_deserialization_base():
     f = file()
-    assert 'file.txt' == f.deserialize('file.txt')
+    assert 'README.md' == f.deserialize('README.md')
 
 def test_file_deserialization_relative():
     f = file()
-    assert 'folder/file.txt' == f.deserialize('folder/file.txt')
+    assert 'runway/__init__.py' == f.deserialize('runway/__init__.py')
 
 def test_file_deserialization_absolute():
+    absolute_path = os.path.abspath('README.md')
     f = file()
-    assert '/home/user/file.txt' == f.deserialize('/home/user/file.txt')
+    assert absolute_path == f.deserialize(absolute_path)
+
+def test_file_deserialization_not_exist():
+    with pytest.raises(InvalidArgumentError):
+        file().deserialize('file-that-does-not-exist.txt')
+
+def test_file_deserialization_invalid_suffix():
+    with pytest.raises(InvalidArgumentError):
+        file(suffix='.txt').deserialize('README.md')
 
 def test_file_deserialization_remote():
     f = file()
-    url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
+    url = 'https://raw.githubusercontent.com/runwayml/model-sdk/0.0.57/README.md'
     path = f.deserialize(url)
     assert os.path.exists(path)
-    check_expected_contents_for_0057_tar_download(path)
+    check_expected_contents_for_0057_file_download(path)
 
 def test_file_deserialization_base_folder():
     f = file(is_folder=True)
-    assert 'folder' == f.deserialize('folder')
+    assert 'runway' == f.deserialize('runway')
 
 def test_file_deserialization_relative_folder():
     f = file(is_folder=True)
-    assert 'folder/folder' == f.deserialize('folder/folder')
+    assert 'docs/source' == f.deserialize('docs/source')
 
 def test_file_deserialization_absolute_folder():
     f = file(is_folder=True)
-    assert '/home/user/folder' == f.deserialize('/home/user/folder')
+    assert '/usr/bin' == f.deserialize('/usr/bin')
 
 def test_file_deserialization_remote_folder():
     f = file(is_folder=True)
