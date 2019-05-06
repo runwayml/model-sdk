@@ -398,7 +398,7 @@ class text(object):
 
 
 class file(object):
-    """A data type that represents a file or folder. The file can be a local \
+    """A data type that represents a file or directory. The file can be a local \
         resource on disk or a remote resource loaded over HTTP. \
         Instantiate this class to create a new runway model variable.
 
@@ -407,22 +407,22 @@ class file(object):
         import runway
         from runway.data_types import file, category
 
-        inputs = {"folder": file(is_folder=True)}
+        inputs = {"directory": file(is_directory=True)}
         outputs = {"result": category(choices=["success", "failure"])}
         @runway.command("batch_process", inputs=inputs, outputs=outputs)
         def batch_process(result_of_setup, args):
-            result = do_something_with(args["folder"])
+            result = do_something_with(args["directory"])
             return { "result": "success" if result else "failure" }
 
     :param name: The name of this variable, defaults to None
     :type name: string, optional
-    :param is_folder: Does this variable represent a folder instead of a file? Defaults to False.
-    :type is_folder: bool, optional
+    :param is_directory: Does this variable represent a directory instead of a file? Defaults to False.
+    :type is_directory: bool, optional
     """
 
-    def __init__(self, name=None, is_folder=False, suffix=None):
+    def __init__(self, name=None, is_directory=False, suffix=None):
         self.name = name or 'file'
-        self.is_folder = is_folder
+        self.is_directory = is_directory
         self.suffix = suffix
 
     def deserialize(self, path_or_url):
@@ -446,6 +446,6 @@ class file(object):
         ret = {}
         ret['type'] = 'file'
         ret['name'] = self.name
-        if self.is_folder: ret['isFolder'] = self.is_folder
+        if self.is_directory: ret['isDirectory'] = self.is_directory
         if self.suffix: ret['suffix'] = self.suffix
         return ret

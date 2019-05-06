@@ -220,12 +220,12 @@ def test_file_to_dict():
     assert obj['name'] == 'file'
     assert obj['type'] == 'file'
 
-def test_file_to_dict_folder():
-    f = file(is_folder=True)
+def test_file_to_dict_directory():
+    f = file(is_directory=True)
     obj = f.to_dict()
     assert obj['name'] == 'file'
     assert obj['type'] == 'file'
-    assert obj['isFolder'] == True
+    assert obj['isDirectory'] == True
 
 def test_file_serialization_base():
     f = file()
@@ -233,7 +233,7 @@ def test_file_serialization_base():
 
 def test_file_serialization_relative():
     f = file()
-    assert 'folder/file.txt' == f.serialize('folder/file.txt')
+    assert 'directory/file.txt' == f.serialize('directory/file.txt')
 
 def test_file_serialization_absolute():
     f = file()
@@ -244,20 +244,20 @@ def test_file_serialization_remote():
     url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
     assert url == f.serialize(url)
 
-def test_file_serialization_base_folder():
-    f = file(is_folder=True)
-    assert 'folder' == f.serialize('folder')
+def test_file_serialization_base_directory():
+    f = file(is_directory=True)
+    assert 'directory' == f.serialize('directory')
 
-def test_file_serialization_relative_folder():
-    f = file(is_folder=True)
-    assert 'folder/folder' == f.serialize('folder/folder')
+def test_file_serialization_relative_directory():
+    f = file(is_directory=True)
+    assert 'directory/directory' == f.serialize('directory/directory')
 
-def test_file_serialization_absolute_folder():
-    f = file(is_folder=True)
-    assert '/home/user/folder' == f.serialize('/home/user/folder')
+def test_file_serialization_absolute_directory():
+    f = file(is_directory=True)
+    assert '/home/user/directory' == f.serialize('/home/user/directory')
 
-def test_file_serialization_remote_folder():
-    f = file(is_folder=True)
+def test_file_serialization_remote_directory():
+    f = file(is_directory=True)
     url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
     assert url == f.serialize(url)
 
@@ -289,20 +289,20 @@ def test_file_deserialization_remote():
     assert os.path.exists(path)
     check_expected_contents_for_0057_file_download(path)
 
-def test_file_deserialization_base_folder():
-    f = file(is_folder=True)
+def test_file_deserialization_base_directory():
+    f = file(is_directory=True)
     assert 'runway' == f.deserialize('runway')
 
-def test_file_deserialization_relative_folder():
-    f = file(is_folder=True)
+def test_file_deserialization_relative_directory():
+    f = file(is_directory=True)
     assert 'docs/source' == f.deserialize('docs/source')
 
-def test_file_deserialization_absolute_folder():
-    f = file(is_folder=True)
+def test_file_deserialization_absolute_directory():
+    f = file(is_directory=True)
     assert '/usr/bin' == f.deserialize('/usr/bin')
 
-def test_file_deserialization_remote_folder():
-    f = file(is_folder=True)
+def test_file_deserialization_remote_directory():
+    f = file(is_directory=True)
     url = 'https://github.com/runwayml/model-sdk/archive/0.0.57.tar.gz'
     path = f.deserialize(url)
     assert os.path.exists(path)
@@ -321,8 +321,8 @@ def test_image_to_dict():
     assert obj['maxHeight'] == 512
 
 def test_image_serialize_and_deserialize():
-    folder = os.path.dirname(os.path.realpath(__file__))
-    img = Image.open(os.path.join(folder, 'test_image.jpg'))
+    directory = os.path.dirname(os.path.realpath(__file__))
+    img = Image.open(os.path.join(directory, 'test_image.jpg'))
     serialized_pil = image().serialize(img)
     deserialized_pil = image().deserialize(serialized_pil)
     assert issubclass(type(deserialized_pil), Image.Image)
