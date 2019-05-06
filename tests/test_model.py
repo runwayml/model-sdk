@@ -38,6 +38,7 @@ def test_model_setup_and_command():
         }],
         'commands': [{
             'name': 'test_command',
+            'description': 'A test command whose description contains emoji 🕳',
             'inputs': [{
                 'type': 'text',
                 'name': 'input',
@@ -64,7 +65,8 @@ def test_model_setup_and_command():
 
     inputs = { 'input': text }
     outputs = { 'output': number }
-    @rw.command('test_command', inputs=inputs, outputs=outputs)
+    description = 'A test command whose description contains emoji 🕳'
+    @rw.command('test_command', inputs=inputs, outputs=outputs, description=description)
     def test_command(model, opts):
         closure['command_ran'] = True
         return 100
@@ -248,6 +250,7 @@ def test_meta(capsys):
         pass
 
     kwargs_2 = {
+        'description': 'This command is used for testing.',
         'inputs': {
             'any': any_type,
             'file': file
@@ -278,6 +281,7 @@ def test_meta(capsys):
         'commands': [
             {
                 'name': 'command_2',
+                'description': 'This command is used for testing.',
                 'inputs': [
                     {
                         'type': 'any',
@@ -301,6 +305,7 @@ def test_meta(capsys):
             },
             {
                 'name': 'command_1',
+                'description': None,
                 'inputs': [
                     {
                         'channels': 3,

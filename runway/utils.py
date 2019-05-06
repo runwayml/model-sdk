@@ -41,6 +41,7 @@ def get_json_or_none_if_invalid(request):
 def serialize_command(cmd):
     ret = {}
     ret['name'] = cmd['name']
+    ret['description'] = cmd['description']
     ret['inputs'] = [inp.to_dict() for inp in cmd['inputs']]
     ret['outputs'] = [inp.to_dict() for inp in cmd['outputs']]
     return ret

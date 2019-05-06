@@ -30,6 +30,8 @@ class RunwayModel(object):
         self.model = None
         self.running_status = 'STARTING'
         self.app = Flask(__name__)
+        # support utf-8 in application/json requests and responses
+        self.app.config['JSON_AS_ASCII'] = False
         CORS(self.app)
         self.define_error_handlers()
         self.define_routes()
@@ -212,7 +214,7 @@ class RunwayModel(object):
                 return fn
             return decorator
 
-    def command(self, name, inputs={}, outputs={}):
+    def command(self, name, inputs={}, outputs={}, description=None):
         """This decorator function is used to define the interface for your
         model. All functions that are wrapped by this decorator become exposed
         via HTTP requests to ``/<command_name>``. Each command that you define
@@ -263,6 +265,10 @@ class RunwayModel(object):
             wrapped function as ``runway.data_types``. At least one key value
             pair is required.
         :type outputs: dict
+        :param description: A text description of what this command does.
+            If this parameter is present its value will be rendered as a tooltip
+            in Runway. Defaults to None.
+        :type description: string
         :raises Exception: An exception if there isn't at least one key value
             pair for both inputs and outputs dictionaries
         :return: A decorated function
@@ -285,6 +291,7 @@ class RunwayModel(object):
 
         command_info = dict(
             name=name,
+            description=description,
             inputs=inputs_as_list,
             outputs=outputs_as_list
         )
