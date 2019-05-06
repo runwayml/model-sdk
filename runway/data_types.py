@@ -418,6 +418,8 @@ class file(object):
     :type name: string, optional
     :param is_directory: Does this variable represent a directory instead of a file? Defaults to False.
     :type is_directory: bool, optional
+    :param extension: Accept only files of this extension.
+    :type extension: string, optional
     """
 
     def __init__(self, name=None, is_directory=False, extension=None):

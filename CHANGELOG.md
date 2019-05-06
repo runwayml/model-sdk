@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.73
+
+- Add support for all remote filetypes over HTTP (we are currently only supporting tarballs)
+- Add extneison argument to the file type and enforce that during deserialization
+- Rename is_folder to is_directory
+
 ## v0.0.70
 
 - Move `/` meta endpoint to `/meta` and specify `GET` as the only allowed method (its still available via `/` for backwards compatibility).

@@ -57,9 +57,8 @@ def download_file(url):
 
 def extract_tarball(path):
     extracted_dir = tempfile.mkdtemp()
-    tar = tarfile.open(path, "r:*")
-    tar.extractall(path=extracted_dir)
-    tar.close()
+    with tarfile.open(path, 'r:*') as tar:
+        tar.extractall(path=extracted_dir)
     return extracted_dir
 
 
