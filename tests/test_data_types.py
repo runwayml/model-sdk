@@ -58,13 +58,15 @@ def test_data_type_interface_file():
 # TEXT -------------------------------------------------------------------------
 def test_text_to_dict():
     default = 'Some default text'
-    txt = text(default=default, min_length=1, max_length=20)
+    description = 'A description about this variable.'
+    txt = text(default=default, description=description, min_length=1, max_length=20)
     obj = txt.to_dict()
     assert obj['type'] == 'text'
     assert obj['name'] == 'text'
     assert obj['default'] == default
     assert obj['minLength'] == 1
     assert obj['maxLength'] == 20
+    assert obj['description'] == description
 
 def test_text_serialization():
     txt = text()
@@ -77,7 +79,8 @@ def test_text_deserialize():
 # NUMBER -----------------------------------------------------------------------
 def test_number_to_dict():
     default = 42
-    num = number(default=default, min=10, max=100)
+    description = 'A description about this variable.'
+    num = number(default=default, description=description, min=10, max=100)
     obj = num.to_dict()
     assert obj['type'] == 'number'
     assert obj['name'] == 'number'
@@ -85,6 +88,7 @@ def test_number_to_dict():
     assert obj['min'] == 10
     assert obj['max'] == 100
     assert obj['step'] == 1
+    assert obj['description'] == description
 
 def test_number_serialization():
     assert 1 == number().serialize(1)
@@ -102,13 +106,15 @@ def test_number_serialize_numpy_scalar():
 
 # ARRAY ------------------------------------------------------------------------
 def test_array_to_dict():
-    arr = array(item_type=text, min_length=5, max_length=10)
+    description = 'A description about this variable.'
+    arr = array(item_type=text, description=description, min_length=5, max_length=10)
     obj = arr.to_dict()
     assert obj['name'] == 'text_array'
     assert obj['type'] == 'array'
     assert obj['itemType'] == text().to_dict()
     assert obj['minLength'] == 5
     assert obj['maxLength'] == 10
+    assert obj['description'] == description
 
 def test_array_no_item_type():
     with pytest.raises(MissingArgumentError):
@@ -135,13 +141,15 @@ def test_array_deserialization():
 
 # VECTOR -----------------------------------------------------------------------
 def test_vector_to_dict():
-    vec = vector(length=128, sampling_mean=0, sampling_std=1)
+    description = 'A description about this variable.'
+    vec = vector(length=128, description=description, sampling_mean=0, sampling_std=1)
     obj = vec.to_dict()
     assert obj['name'] == 'vector'
     assert obj['type'] == 'vector'
     assert obj['length'] == 128
     assert obj['samplingMean'] == 0
     assert obj['samplingStd'] == 1
+    assert obj['description'] == description
 
 def test_vector_no_item_type():
     with pytest.raises(MissingArgumentError):
@@ -173,12 +181,14 @@ def test_vector_default_no_length_arg():
 
 # CATEGORY ---------------------------------------------------------------------
 def test_category_to_dict():
-    cat = category(choices=['one', 'two', 'three'], default='two')
+    description = 'A description about this variable.'
+    cat = category(choices=['one', 'two', 'three'], default='two', description=description)
     obj = cat.to_dict()
     assert obj['name'] == 'category'
     assert obj['type'] == 'category'
     assert obj['oneOf'] == ['one', 'two', 'three']
     assert obj['default'] == 'two'
+    assert obj['description'] == description
 
 def test_category_serialization():
     cat = category(choices=['one', 'two', 'three'], default='two')
@@ -219,13 +229,16 @@ def test_file_to_dict():
     obj = f.to_dict()
     assert obj['name'] == 'file'
     assert obj['type'] == 'file'
+    assert obj['description'] == None
 
 def test_file_to_dict_directory():
-    f = file(is_directory=True)
+    description = 'A description about this variable.'
+    f = file(is_directory=True, description=description)
     obj = f.to_dict()
     assert obj['name'] == 'file'
     assert obj['type'] == 'file'
     assert obj['isDirectory'] == True
+    assert obj['description'] == description
 
 def test_file_serialization_base():
     f = file()
@@ -319,6 +332,7 @@ def test_image_to_dict():
     assert obj['maxWidth'] == 512
     assert obj['minHeight'] == 128
     assert obj['maxHeight'] == 512
+    assert obj['description'] == None
 
 def test_image_serialize_and_deserialize():
     directory = os.path.dirname(os.path.realpath(__file__))

@@ -30,8 +30,13 @@ class RunwayModel(object):
         self.model = None
         self.running_status = 'STARTING'
         self.app = Flask(__name__)
-        # support utf-8 in application/json requests and responses
-        self.app.config['JSON_AS_ASCII'] = False
+        # Support utf-8 in application/json requests and responses.
+        # We wrap this in a try/except block because, for whatever reason,
+        # `make docs` throws a TypeError that keys are unassignable to
+        # self.app.config. This DOES NOT occur when using the RunwayModel module
+        # anywere except in the docs build environment.
+        try: self.app.config['JSON_AS_ASCII'] = False
+        except TypeError: pass
         CORS(self.app)
         self.define_error_handlers()
         self.define_routes()

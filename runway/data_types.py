@@ -14,8 +14,39 @@ from PIL import Image
 from .utils import is_url, extract_tarball, try_cast_np_scalar, download_file
 from .exceptions import MissingArgumentError, InvalidArgumentError
 
+class BaseType(object):
+    """An abstract class that defines a base data type interface. This type
+    should be used as the base class of new data types, never directly.
 
-class any(object):
+    :param type: The data type represented as a string
+    :type type: string
+    :param name: The name associated with this variable, defaults to None
+    :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
+    """
+
+    def __init__(self, type, name=None, description=None):
+        # WARNING: we are temporarily ghosting the Python type() builtin here
+        self.type = type
+        self.name = name
+        self.description = description
+
+    def serialize(self, value):
+        raise NotImplementedError()
+
+    def deserialize(self, value):
+        raise NotImplementedError()
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'type': self.type,
+            'description': self.description
+        }
+
+class any(BaseType):
     """A generic data type. The value this data type takes must be serializable to JSON.
 
     .. code-block:: python
@@ -35,10 +66,13 @@ class any(object):
 
     :param name: The name associated with this variable, defaults to "field"
     :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
     """
 
-    def __init__(self, name=None):
-        self.name = name
+    def __init__(self, name='field', description=None):
+        super().__init__('any', name=name, description=description)
 
     def serialize(self, v):
         return v
@@ -47,12 +81,9 @@ class any(object):
         return v
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'any'
-        ret['name'] = self.name or 'field'
-        return ret
+        return super().to_dict()
 
-class array(object):
+class array(BaseType):
     """A data type representing an array (list) of other runway.data_type objects.
 
     .. code-block:: python
@@ -70,13 +101,17 @@ class array(object):
     :param name: The name associated with this variable, defaults to "{item_type}_array" \
         (e.g. "image_array")
     :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
     :param min_length: The minimum number of elements required to be in the array, defaults to 0
     :type min_length: int, optional
     :param max_length: The maximum number of elements allowed to be in the array, defaults to None
     :type max_length: int, optional
     :raises MissingArgumentError: A missing argument error if item_type is not specified
     """
-    def __init__(self, item_type=None, name=None, min_length=0, max_length=None):
+    def __init__(self, item_type=None, name=None, description=None, min_length=0, max_length=None):
+        super().__init__('array', name=name, description=description)
         if item_type is None: raise MissingArgumentError('item_type')
         if inspect.isclass(item_type):
             self.item_type = item_type()
@@ -93,16 +128,14 @@ class array(object):
         return [self.item_type.serialize(item) for item in items]
 
     def to_dict(self):
-        ret = {}
-        ret['name'] = self.name
-        ret['type'] = 'array'
+        ret = super().to_dict()
         ret['itemType'] = self.item_type.to_dict()
         ret['minLength'] = self.min_length
         if self.max_length: ret['maxLength'] = self.max_length
         return ret
 
 
-class image(object):
+class image(BaseType):
     """A data type representing an image. Images represent PIL or numpy
     images but are passed to and from the Model SDK as base64 encoded data URI
     strings over the network
@@ -130,6 +163,9 @@ class image(object):
 
     :param name: The name associated with this variable, defaults to "image"
     :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
     :param channels: The number of channels in the image, defaults to 3. \
         E.g. an "rgb" image has 3 channels while an "rgba" image has 4.
     :type channels: int, optional
@@ -146,8 +182,8 @@ class image(object):
     :param height: The height of the image, defaults to None
     :type height: int, optional
     """
-    def __init__(self, name=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
-        self.name = name or 'image'
+    def __init__(self, name='image', description=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
+        super().__init__('image', name=name, description=description)
         self.channels = channels
         self.min_width = min_width
         self.min_height = min_height
@@ -174,9 +210,7 @@ class image(object):
         return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'image'
-        ret['name'] = self.name
+        ret = super().to_dict()
         ret['channels'] = self.channels
         if self.min_width: ret['minWidth'] = self.min_width
         if self.max_width: ret['maxWidth'] = self.max_width
@@ -187,7 +221,7 @@ class image(object):
         return ret
 
 
-class vector(object):
+class vector(BaseType):
     """A data type representing a vector of floats.
 
     .. code-block:: python
@@ -204,17 +238,21 @@ class vector(object):
             rand = np.random.random_sample(args["length"])
             return { "vector": vec.deserialize(rand) }
 
-    :param length: The number of elements in the vector
-    :type length: int
     :param name: The name associated with this variable, defaults to "vector"
     :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
+    :param length: The number of elements in the vector
+    :type length: int, inferred if a default vector is specified
     :param sampling_mean: The mean of the sample the vector is drawn from, defaults to 0
     :type sampling_mean: float, optional
     :param sampling_std: The standard deviation of the sample the vector is drawn from, defaults to 1
     :type sampling_std: float, optional
     :raises MissingArgumentError: A missing argument error if length is not specified
     """
-    def __init__(self, length=None, name=None, default=None, sampling_mean=0, sampling_std=1):
+    def __init__(self, name='vector', description=None, length=None, default=None, sampling_mean=0, sampling_std=1):
+        super().__init__('vector', name=name, description=description)
         if default is not None:
             if length is None:
                 length = len(default)
@@ -223,7 +261,6 @@ class vector(object):
                 raise InvalidArgumentError(msg)
         if length is None:
             raise MissingArgumentError('length')
-        self.name = name or 'vector'
         self.length = length
         self.sampling_mean = sampling_mean
         self.sampling_std = sampling_std
@@ -236,9 +273,7 @@ class vector(object):
         return value.tolist()
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'vector'
-        ret['name'] = self.name
+        ret = super().to_dict()
         ret['length'] = self.length
         ret['samplingMean'] = self.sampling_mean
         ret['samplingStd'] = self.sampling_std
@@ -246,7 +281,7 @@ class vector(object):
         return ret
 
 
-class category(object):
+class category(BaseType):
     """A categorical data type that allows you to specify a variable's value \
         as a member of a set list of choices.
 
@@ -264,6 +299,9 @@ class category(object):
 
         :param name: The name associated with this variable, defaults to "category"
         :type name: string, optional
+        :param description: A description of this variable and how its used in the model,
+            defaults to None
+        :type description: string, optional
         :param choices: A list of categories, defaults to None
         :type choices: A list of strings
         :param default: A default list of categories, defaults to None
@@ -275,12 +313,12 @@ class category(object):
             choices list.
     """
 
-    def __init__(self, name=None, choices=None, default=None):
+    def __init__(self, name='category', description=None, choices=None, default=None):
+        super().__init__('category', name=name, description=description)
         if choices is None or len(choices) == 0: raise MissingArgumentError('choices')
         if default is not None and default not in choices:
             msg = 'default argument {} is not in choices list'.format(default)
             raise InvalidArgumentError(msg)
-        self.name = name or 'category'
         self.choices = choices
         self.default = default or self.choices[0]
 
@@ -294,15 +332,13 @@ class category(object):
         return value
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'category'
-        ret['name'] = self.name
+        ret = super().to_dict()
         ret['oneOf'] = self.choices
         ret['default'] = self.default
         return ret
 
 
-class number(object):
+class number(BaseType):
     """A basic number data type. Instantiate this class to create a new runway model variable.
 
     .. code-block:: python
@@ -316,6 +352,9 @@ class number(object):
 
     :param name: The name associated with this variable, defaults to None
     :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
     :param default: A default value for this number variable, defaults to 0
     :type default: float, optional
     :param min: The minimum allowed value of this number type, defaults to 0
@@ -328,8 +367,8 @@ class number(object):
     :type step: float, optional
     """
 
-    def __init__(self, name=None, default=0, min=0, max=1, step=1):
-        self.name = name or 'number'
+    def __init__(self, name='number', description=None, default=0, min=0, max=1, step=1):
+        super().__init__('number', name=name, description=description)
         self.default = default
         self.min = min
         self.max = max
@@ -342,9 +381,7 @@ class number(object):
         return try_cast_np_scalar(value)
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'number'
-        ret['name'] = self.name
+        ret = super().to_dict()
         ret['default'] = self.default
         ret['min'] = self.min
         ret['max'] = self.max
@@ -352,7 +389,7 @@ class number(object):
         return ret
 
 
-class text(object):
+class text(BaseType):
     """A basic text data type. Used to represent strings. \
         Instantiate this class to create a new runway model variable.
 
@@ -367,16 +404,19 @@ class text(object):
 
     :param name: The name associated with this variable, defaults to "text"
     :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
     :param default: The default value for this text variable, defaults to ''
-    :type default: str, optional
+    :type default: string, optional
     :param min_length: The minimum character length of this text variable, defaults to 0
     :type min_length: int, optional
     :param max_length: The maximum character length of this text variable, \
         defaults to None, which allows text to be of any maximum length
     :type max_length: int, optional
     """
-    def __init__(self, name=None, default='', min_length=0, max_length=None):
-        self.name = name or 'text'
+    def __init__(self, name='text', description=None, default='', min_length=0, max_length=None):
+        super().__init__('text', name=name, description=description)
         self.default = default
         self.min_length = min_length
         self.max_length = max_length
@@ -388,16 +428,14 @@ class text(object):
         return str(value)
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'text'
-        ret['name'] = self.name
+        ret = super().to_dict()
         ret['default'] = self.default
         ret['minLength'] = self.min_length
         if self.max_length: ret['maxLength'] = self.max_length
         return ret
 
 
-class file(object):
+class file(BaseType):
     """A data type that represents a file or directory. The file can be a local \
         resource on disk or a remote resource loaded over HTTP. \
         Instantiate this class to create a new runway model variable.
@@ -416,14 +454,17 @@ class file(object):
 
     :param name: The name of this variable, defaults to None
     :type name: string, optional
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
     :param is_directory: Does this variable represent a directory instead of a file? Defaults to False.
     :type is_directory: bool, optional
     :param extension: Accept only files of this extension.
     :type extension: string, optional
     """
 
-    def __init__(self, name=None, is_directory=False, extension=None):
-        self.name = name or 'file'
+    def __init__(self, name='file', description=None, is_directory=False, extension=None):
+        super().__init__('file', name=name, description=description)
         self.is_directory = is_directory
         self.extension = extension
 
@@ -445,9 +486,7 @@ class file(object):
         return value
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'file'
-        ret['name'] = self.name
+        ret = super().to_dict()
         if self.is_directory: ret['isDirectory'] = self.is_directory
         if self.extension: ret['extension'] = self.extension
         return ret
