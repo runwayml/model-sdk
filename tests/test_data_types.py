@@ -31,6 +31,9 @@ def check_expected_contents_for_0057_tar_download(path):
         assert f.read() == '# Runway Python SDK\n'
 
 # BASIC TESTS FOR ALL DATA TYPES -----------------------------------------------
+def test_data_type_interface_base_type():
+    check_data_type_interface(BaseType)
+
 def test_data_type_interface_any():
     check_data_type_interface(any)
 
@@ -54,6 +57,55 @@ def test_data_type_interface_text():
 
 def test_data_type_interface_file():
     check_data_type_interface(file)
+
+# BASE TYPE --------------------------------------------------------------------
+def test_base_type_to_dict():
+
+    base_type = BaseType('base', name='No name', description='Some description.')
+    obj = base_type.to_dict()
+    assert obj['type'] == 'base'
+    assert obj['name'] == 'No name'
+    assert obj['description'] == 'Some description.'
+
+# The BaseType is an abstract class that requires its serialize/deserialize
+# methods to be overwritten by subclasses
+def test_base_type_serialize_not_implemented():
+    base_type = BaseType('base')
+    with pytest.raises(NotImplementedError):
+        base_type.serialize('test')
+
+def test_base_type_deserialize_not_implemented():
+    base_type = BaseType('base')
+    with pytest.raises(NotImplementedError):
+        base_type.deserialize('test')
+
+# ANY --------------------------------------------------------------------------
+def test_any_to_dict():
+    a = any()
+    obj = a.to_dict()
+    assert obj['type'] == 'any'
+    assert obj['name'] == 'field'
+    assert obj['description'] == None
+
+def test_any_serialization():
+    a = any()
+    assert a.serialize(512) == 512
+    assert a.serialize(512.5) == 512.5
+    assert a.serialize('512') == '512'
+    assert a.serialize(None) == None
+    assert a.serialize(True) == True
+    assert a.serialize([]) == []
+    assert a.serialize({}) == {}
+
+def test_any_deserialize():
+    a = any()
+    assert a.deserialize(512) == 512
+    assert a.deserialize(512.5) == 512.5
+    assert a.deserialize('512') == '512'
+    assert a.deserialize(None) == None
+    assert a.deserialize(True) == True
+    assert a.deserialize([]) == []
+    assert a.deserialize({}) == {}
 
 # TEXT -------------------------------------------------------------------------
 def test_text_to_dict():
