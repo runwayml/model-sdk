@@ -72,7 +72,7 @@ class any(BaseType):
     """
 
     def __init__(self, name='field', description=None):
-        super().__init__('any', name=name, description=description)
+        super(any, self).__init__('any', name=name, description=description)
 
     def serialize(self, v):
         return v
@@ -81,7 +81,7 @@ class any(BaseType):
         return v
 
     def to_dict(self):
-        return super().to_dict()
+        return super(any, self).to_dict()
 
 class array(BaseType):
     """A data type representing an array (list) of other runway.data_type objects.
@@ -111,7 +111,7 @@ class array(BaseType):
     :raises MissingArgumentError: A missing argument error if item_type is not specified
     """
     def __init__(self, item_type=None, name=None, description=None, min_length=0, max_length=None):
-        super().__init__('array', name=name, description=description)
+        super(array, self).__init__('array', name=name, description=description)
         if item_type is None: raise MissingArgumentError('item_type')
         if inspect.isclass(item_type):
             self.item_type = item_type()
@@ -128,7 +128,7 @@ class array(BaseType):
         return [self.item_type.serialize(item) for item in items]
 
     def to_dict(self):
-        ret = super().to_dict()
+        ret = super(array, self).to_dict()
         ret['itemType'] = self.item_type.to_dict()
         ret['minLength'] = self.min_length
         if self.max_length: ret['maxLength'] = self.max_length
@@ -183,7 +183,7 @@ class image(BaseType):
     :type height: int, optional
     """
     def __init__(self, name='image', description=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
-        super().__init__('image', name=name, description=description)
+        super(image, self).__init__('image', name=name, description=description)
         self.channels = channels
         self.min_width = min_width
         self.min_height = min_height
@@ -210,7 +210,7 @@ class image(BaseType):
         return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
 
     def to_dict(self):
-        ret = super().to_dict()
+        ret = super(image, self).to_dict()
         ret['channels'] = self.channels
         if self.min_width: ret['minWidth'] = self.min_width
         if self.max_width: ret['maxWidth'] = self.max_width
@@ -252,7 +252,7 @@ class vector(BaseType):
     :raises MissingArgumentError: A missing argument error if length is not specified
     """
     def __init__(self, name='vector', description=None, length=None, default=None, sampling_mean=0, sampling_std=1):
-        super().__init__('vector', name=name, description=description)
+        super(vector, self).__init__('vector', name=name, description=description)
         if default is not None:
             if length is None:
                 length = len(default)
@@ -273,7 +273,7 @@ class vector(BaseType):
         return value.tolist()
 
     def to_dict(self):
-        ret = super().to_dict()
+        ret = super(vector, self).to_dict()
         ret['length'] = self.length
         ret['samplingMean'] = self.sampling_mean
         ret['samplingStd'] = self.sampling_std
@@ -314,7 +314,7 @@ class category(BaseType):
     """
 
     def __init__(self, name='category', description=None, choices=None, default=None):
-        super().__init__('category', name=name, description=description)
+        super(category, self).__init__('category', name=name, description=description)
         if choices is None or len(choices) == 0: raise MissingArgumentError('choices')
         if default is not None and default not in choices:
             msg = 'default argument {} is not in choices list'.format(default)
@@ -332,7 +332,7 @@ class category(BaseType):
         return value
 
     def to_dict(self):
-        ret = super().to_dict()
+        ret = super(category, self).to_dict()
         ret['oneOf'] = self.choices
         ret['default'] = self.default
         return ret
@@ -368,7 +368,7 @@ class number(BaseType):
     """
 
     def __init__(self, name='number', description=None, default=0, min=0, max=1, step=1):
-        super().__init__('number', name=name, description=description)
+        super(number, self).__init__('number', name=name, description=description)
         self.default = default
         self.min = min
         self.max = max
@@ -381,7 +381,7 @@ class number(BaseType):
         return try_cast_np_scalar(value)
 
     def to_dict(self):
-        ret = super().to_dict()
+        ret = super(number, self).to_dict()
         ret['default'] = self.default
         ret['min'] = self.min
         ret['max'] = self.max
@@ -416,7 +416,7 @@ class text(BaseType):
     :type max_length: int, optional
     """
     def __init__(self, name='text', description=None, default='', min_length=0, max_length=None):
-        super().__init__('text', name=name, description=description)
+        super(text, self).__init__('text', name=name, description=description)
         self.default = default
         self.min_length = min_length
         self.max_length = max_length
@@ -428,7 +428,7 @@ class text(BaseType):
         return str(value)
 
     def to_dict(self):
-        ret = super().to_dict()
+        ret = super(text, self).to_dict()
         ret['default'] = self.default
         ret['minLength'] = self.min_length
         if self.max_length: ret['maxLength'] = self.max_length
@@ -464,7 +464,7 @@ class file(BaseType):
     """
 
     def __init__(self, name='file', description=None, is_directory=False, extension=None):
-        super().__init__('file', name=name, description=description)
+        super(file, self).__init__('file', name=name, description=description)
         self.is_directory = is_directory
         self.extension = extension
 
@@ -486,7 +486,7 @@ class file(BaseType):
         return value
 
     def to_dict(self):
-        ret = super().to_dict()
+        ret = super(file, self).to_dict()
         if self.is_directory: ret['isDirectory'] = self.is_directory
         if self.extension: ret['extension'] = self.extension
         return ret
