@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Ensure that the local version of the runway module is used, not a pip
 # installed version
 import sys
@@ -38,7 +39,7 @@ def test_model_setup_and_command():
         }],
         'commands': [{
             'name': 'test_command',
-            'description': 'A test command whose description contains emoji 🕳',
+            'description': None,
             'inputs': [{
                 'type': 'text',
                 'name': 'input',
@@ -65,7 +66,15 @@ def test_model_setup_and_command():
 
     inputs = { 'input': text }
     outputs = { 'output': number }
-    description = 'A test command whose description contains emoji 🕳'
+
+    # Python 2.7 doesn't seem to handle emoji serialization correctly in JSON,
+    # so we will only test emoji serialization/deserialization in Python 3
+    if sys.version_info[0] < 3:
+        description = 'Sorry, Python 2 doesn\'t support emoji very well'
+    else:
+        description = 'A test command whose description contains emoji 🕳'
+    expected_manifest['commands'][0]['description'] = description
+
     @rw.command('test_command', inputs=inputs, outputs=outputs, description=description)
     def test_command(model, opts):
         closure['command_ran'] = True
