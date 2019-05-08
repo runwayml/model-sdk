@@ -5,13 +5,15 @@ import datetime
 import traceback
 import json
 from six import reraise
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
-from .utils import gzipped, serialize_command, cast_to_obj
+from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
+        validate_post_request_body_is_json, get_json_or_none_if_invalid
+from .__version__ import __version__ as model_sdk_version
 
 class RunwayModel(object):
     """A Runway Model server. A singleton instance of this class is created automatically
@@ -19,6 +21,8 @@ class RunwayModel(object):
     """
 
     def __init__(self):
+        self.millis_run_started_at = None
+        self.millis_last_command = None
         self.options = []
         self.setup_fn = None
         self.commands = {}
@@ -26,36 +30,83 @@ class RunwayModel(object):
         self.model = None
         self.running_status = 'STARTING'
         self.app = Flask(__name__)
+        # Support utf-8 in application/json requests and responses.
+        # We wrap this in a try/except block because, for whatever reason,
+        # `make docs` throws a TypeError that keys are unassignable to
+        # self.app.config. This DOES NOT occur when using the RunwayModel module
+        # anywere except in the docs build environment.
+        try: self.app.config['JSON_AS_ASCII'] = False
+        except TypeError: pass
         CORS(self.app)
+        self.define_error_handlers()
         self.define_routes()
 
+    def define_error_handlers(self):
+
+        # not yet implemented, but if and when it is lets make sure its returned
+        # as JSON
+        @self.app.errorhandler(401)
+        def unauthorized(e):
+            msg = 'Unauthorized (well... '
+            msg += 'really unauthenticated but hey I didn\'t write the spec).'
+            return jsonify(dict(error=msg)), 401
+
+        # not yet implemented, but if and when it is lets make sure its returned
+        # as JSON
+        @self.app.errorhandler(403)
+        def forbidden(e):
+            return jsonify(dict(error='Forbidden.')), 403
+
+        @self.app.errorhandler(404)
+        def page_not_found(e):
+            return jsonify(dict(error='Not found.')), 404
+
+        @self.app.errorhandler(405)
+        def method_not_allowed(e):
+            return jsonify(dict(error='Method not allowed.')), 405
+
+        # we shouldn't have any of these as we are wrapping errors in
+        # RunwayError objects and returning stacktraces, but it can't hurt
+        # to be safe.
+        @self.app.errorhandler(500)
+        def internal_server_error(e):
+            return jsonify(dict(error='Internal server error.')), 500
+
     def define_routes(self):
-        @self.app.route('/')
+
+        @self.app.route('/', methods=['GET'])
+        @self.app.route('/meta', methods=['GET'])
         def manifest():
-            return json.dumps(dict(
+            return jsonify(dict(
+                modelSDKVersion=model_sdk_version,
+                millisRunning=self.millis_running(),
+                millisSinceLastCommand=self.millis_since_last_command(),
+                GPU=os.environ.get('GPU') == '1',
                 options=[opt.to_dict() for opt in self.options],
                 commands=[serialize_command(cmd) for cmd in self.commands.values()]
             ))
 
-        @self.app.route('/healthcheck')
+        @self.app.route('/healthcheck', methods=['GET'])
         def healthcheck_route():
-            return self.running_status
+            return jsonify(dict(status=self.running_status))
 
         @self.app.route('/setup', methods=['POST'])
+        @validate_post_request_body_is_json
         def setup_route():
-            opts = request.json
+            opts = get_json_or_none_if_invalid(request)
             try:
                 self.setup_model(opts)
-                return json.dumps(dict(success=True))
+                return jsonify(dict(success=True))
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response()), err.code
+                return jsonify(err.to_response()), err.code
 
         @self.app.route('/setup', methods=['GET'])
         def setup_options_route():
-            return json.dumps(self.options)
+            return jsonify(self.options)
 
         @self.app.route('/<command_name>', methods=['POST'])
+        @validate_post_request_body_is_json
         def command_route(command_name):
             try:
                 try:
@@ -64,7 +115,7 @@ class RunwayModel(object):
                     raise UnknownCommandError(command_name)
                 inputs = self.commands[command_name]['inputs']
                 outputs = self.commands[command_name]['outputs']
-                input_dict = request.json
+                input_dict = get_json_or_none_if_invalid(request)
                 deserialized_inputs = {}
                 for inp in inputs:
                     name = inp.name
@@ -73,6 +124,7 @@ class RunwayModel(object):
                     value = input_dict[name] or getattr(inp, 'default', None)
                     deserialized_inputs[name] = inp.deserialize(value)
                 try:
+                    self.millis_last_command = timestamp_millis()
                     results = command_fn(self.model, deserialized_inputs)
                     if type(results) != dict:
                         name = outputs[0].name
@@ -86,11 +138,11 @@ class RunwayModel(object):
                 for out in outputs:
                     name = out.to_dict()['name']
                     serialized_outputs[name] = out.serialize(results[name])
-                return json.dumps(serialized_outputs).encode('utf8')
+                return jsonify(serialized_outputs)
 
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response()), err.code
+                return jsonify(err.to_response()), err.code
 
         @self.app.route('/<command_name>', methods=['GET'])
         def usage_route(command_name):
@@ -99,10 +151,18 @@ class RunwayModel(object):
                     command = self.commands[command_name]
                 except KeyError:
                     raise UnknownCommandError(command_name)
-                return json.dumps(serialize_command(command))
+                return jsonify(serialize_command(command))
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response())
+                return jsonify(err.to_response()), err.code
+
+    def millis_running(self):
+        if self.millis_run_started_at is None: return None
+        return timestamp_millis() - self.millis_run_started_at
+
+    def millis_since_last_command(self):
+        if self.millis_last_command is None: return None
+        return timestamp_millis() - self.millis_last_command
 
     def setup(self, decorated_fn=None, options=None):
         """This decorator is used to wrap your own ``setup()`` (or equivalent)
@@ -159,7 +219,7 @@ class RunwayModel(object):
                 return fn
             return decorator
 
-    def command(self, name, inputs={}, outputs={}):
+    def command(self, name, inputs={}, outputs={}, description=None):
         """This decorator function is used to define the interface for your
         model. All functions that are wrapped by this decorator become exposed
         via HTTP requests to ``/<command_name>``. Each command that you define
@@ -210,6 +270,10 @@ class RunwayModel(object):
             wrapped function as ``runway.data_types``. At least one key value
             pair is required.
         :type outputs: dict
+        :param description: A text description of what this command does.
+            If this parameter is present its value will be rendered as a tooltip
+            in Runway. Defaults to None.
+        :type description: string
         :raises Exception: An exception if there isn't at least one key value
             pair for both inputs and outputs dictionaries
         :return: A decorated function
@@ -232,6 +296,7 @@ class RunwayModel(object):
 
         command_info = dict(
             name=name,
+            description=description,
             inputs=inputs_as_list,
             outputs=outputs_as_list
         )
@@ -388,6 +453,9 @@ class RunwayModel(object):
         except RunwayError as err:
             err.print_exception()
             sys.exit(1)
+
+        # start the run started at millis timer even if we don't actually serve
+        self.millis_run_started_at = timestamp_millis()
         if no_serve:
             print('Not starting model server because "no_serve" directive is present.')
         else:
