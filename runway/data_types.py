@@ -209,7 +209,7 @@ class image(BaseType):
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
-            raise InvalidArgumentError('value is not a PIL or numpy image')
+            raise InvalidArgumentError(self.name or self.type, 'value is not a PIL or numpy image')
         buffer = IO()
         im_pil.save(buffer, format='JPEG')
         return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
@@ -263,7 +263,7 @@ class vector(BaseType):
                 length = len(default)
             elif len(default) != length:
                 msg = 'default argument does not match expected length'
-                raise InvalidArgumentError(msg)
+                raise InvalidArgumentError(self.name or self.type, msg)
         if length is None:
             raise MissingArgumentError('length')
         self.length = length
@@ -323,14 +323,14 @@ class category(BaseType):
         if choices is None or len(choices) == 0: raise MissingArgumentError('choices')
         if default is not None and default not in choices:
             msg = 'default argument {} is not in choices list'.format(default)
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name or self.type, msg)
         self.choices = choices
         self.default = default or self.choices[0]
 
     def deserialize(self, value):
         if value not in self.choices:
             msg = 'category value "%s" does not appear in choices list.' % value
-            raise InvalidArgumentError(self.type, msg)
+            raise InvalidArgumentError(self.name or self.type, msg)
         return value
 
     def serialize(self, value):
@@ -482,9 +482,9 @@ class file(BaseType):
                 return downloaded_path
         else:
             if not os.path.exists(path_or_url):
-                raise InvalidArgumentError('file path provided does not exist')
+                raise InvalidArgumentError(self.name or self.type, 'file path provided does not exist')
             if self.extension and not path_or_url.endswith(self.extension):
-                raise InvalidArgumentError('file path does not have expected extension')
+                raise InvalidArgumentError(self.name or self.type, 'file path does not have expected extension')
             return path_or_url
 
     def serialize(self, value):
