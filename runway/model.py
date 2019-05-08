@@ -285,6 +285,9 @@ class RunwayModel(object):
         inputs_as_list = []
         for input_name, inp in inputs.items():
             inp_obj = cast_to_obj(inp)
+            # It is the responsibility of the RunwayModel's setup() and command()
+            # functions to assign names to runway.data_types based on the dictionary
+            # keys
             inp_obj.name = input_name
             inputs_as_list.append(inp_obj)
 

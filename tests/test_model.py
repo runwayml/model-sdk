@@ -288,7 +288,7 @@ def test_meta(capsys):
                     'default': '',
                     'minLength': 0,
                     'type': 'text',
-                    'name': 'text',
+                    'name': 'text_array_item',
                     'description': None
                 }
             }

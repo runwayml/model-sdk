@@ -20,17 +20,21 @@ class BaseType(object):
 
     :param data_type: The data type represented as a string
     :type data_type: string
-    :param name: The name associated with this variable, defaults to None
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
     """
 
-    def __init__(self, data_type, name=None, description=None):
+    def __init__(self, data_type, description=None):
         self.type = data_type
-        self.name = name
         self.description = description
+
+        # The name property is assigned after contruction through direct
+        # property assignment (e.g. `txt = text(); txt.name = 'some_name' `)
+        # It is the responsibility of the RunwayModel's setup() and command()
+        # functions to assign names to runway.data_types based on the dictionary
+        # keys
+        self.name = None
 
     def serialize(self, value):
         raise NotImplementedError()
@@ -56,22 +60,20 @@ class any(BaseType):
         from your_code import model
 
         # an example of passing your own yaml configuration using an "any" data_type and PyYAML
-        @runway.setup(options={ "configuration": any(name="yaml") })
+        @runway.setup(options={ "configuration": any() })
         def setup(opts):
             # parse the configuration string as yaml, and then pass the resulting
             # object as the configuration to your model
             config = yaml.load(opts["configuration"])
             return model(config)
 
-    :param name: The name associated with this variable, defaults to "field"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
     """
 
-    def __init__(self, name='field', description=None):
-        super(any, self).__init__('any', name=name, description=description)
+    def __init__(self, description=None):
+        super(any, self).__init__('any', description=description)
 
     def serialize(self, v):
         return v
@@ -97,9 +99,6 @@ class array(BaseType):
 
     :param item_type: A runway.data_type class, or an instance of a runway.data_type class
     :type item_type: runway.data_type
-    :param name: The name associated with this variable, defaults to "{item_type}_array" \
-        (e.g. "image_array")
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -109,14 +108,14 @@ class array(BaseType):
     :type max_length: int, optional
     :raises MissingArgumentError: A missing argument error if item_type is not specified
     """
-    def __init__(self, item_type=None, name=None, description=None, min_length=0, max_length=None):
-        super(array, self).__init__('array', name=name, description=description)
+    def __init__(self, item_type=None, description=None, min_length=0, max_length=None):
+        super(array, self).__init__('array', description=description)
         if item_type is None: raise MissingArgumentError('item_type')
         if inspect.isclass(item_type):
             self.item_type = item_type()
         else:
             self.item_type = item_type
-        self.name = name or '%s_array' % self.item_type.name
+        self.item_type.name = '%s_array_item' % self.item_type.type
         self.min_length = min_length
         self.max_length = max_length
 
@@ -160,8 +159,6 @@ class image(BaseType):
             # encoded data URI string by the @runway.command() decorator.
             return { "image": img }
 
-    :param name: The name associated with this variable, defaults to "image"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -181,8 +178,8 @@ class image(BaseType):
     :param height: The height of the image, defaults to None
     :type height: int, optional
     """
-    def __init__(self, name='image', description=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
-        super(image, self).__init__('image', name=name, description=description)
+    def __init__(self, description=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
+        super(image, self).__init__('image', description=description)
         self.channels = channels
         self.min_width = min_width
         self.min_height = min_height
@@ -203,7 +200,7 @@ class image(BaseType):
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
-            raise InvalidArgumentError('value is not a PIL or numpy image')
+            raise InvalidArgumentError(self.name or self.type, 'value is not a PIL or numpy image')
         buffer = IO()
         im_pil.save(buffer, format='JPEG')
         return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
@@ -237,8 +234,6 @@ class vector(BaseType):
             rand = np.random.random_sample(args["length"])
             return { "vector": vec.deserialize(rand) }
 
-    :param name: The name associated with this variable, defaults to "vector"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -250,14 +245,14 @@ class vector(BaseType):
     :type sampling_std: float, optional
     :raises MissingArgumentError: A missing argument error if length is not specified
     """
-    def __init__(self, name='vector', description=None, length=None, default=None, sampling_mean=0, sampling_std=1):
-        super(vector, self).__init__('vector', name=name, description=description)
+    def __init__(self, description=None, length=None, default=None, sampling_mean=0, sampling_std=1):
+        super(vector, self).__init__('vector', description=description)
         if default is not None:
             if length is None:
                 length = len(default)
             elif len(default) != length:
                 msg = 'default argument does not match expected length'
-                raise InvalidArgumentError(msg)
+                raise InvalidArgumentError(self.name or self.type, msg)
         if length is None:
             raise MissingArgumentError('length')
         self.length = length
@@ -296,8 +291,6 @@ class category(BaseType):
             def setup(opts):
                 print("The selected pixel order is {}".format(opts["pixel_order"]))
 
-        :param name: The name associated with this variable, defaults to "category"
-        :type name: string, optional
         :param description: A description of this variable and how its used in the model,
             defaults to None
         :type description: string, optional
@@ -312,19 +305,19 @@ class category(BaseType):
             choices list.
     """
 
-    def __init__(self, name='category', description=None, choices=None, default=None):
-        super(category, self).__init__('category', name=name, description=description)
+    def __init__(self, description=None, choices=None, default=None):
+        super(category, self).__init__('category', description=description)
         if choices is None or len(choices) == 0: raise MissingArgumentError('choices')
         if default is not None and default not in choices:
             msg = 'default argument {} is not in choices list'.format(default)
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name or self.type, msg)
         self.choices = choices
         self.default = default or self.choices[0]
 
     def deserialize(self, value):
         if value not in self.choices:
             msg = 'category value "%s" does not appear in choices list.' % value
-            raise InvalidArgumentError(self.name, msg)
+            raise InvalidArgumentError(self.name or self.type, msg)
         return value
 
     def serialize(self, value):
@@ -349,8 +342,6 @@ class number(BaseType):
         def setup(opts):
             print("The number of samples is {}".format(opts["number_of_samples"]))
 
-    :param name: The name associated with this variable, defaults to None
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -366,8 +357,8 @@ class number(BaseType):
     :type step: float, optional
     """
 
-    def __init__(self, name='number', description=None, default=0, min=0, max=1, step=1):
-        super(number, self).__init__('number', name=name, description=description)
+    def __init__(self, description=None, default=0, min=0, max=1, step=1):
+        super(number, self).__init__('number', description=description)
         self.default = default
         self.min = min
         self.max = max
@@ -401,8 +392,6 @@ class text(BaseType):
         def setup(opts):
             print("The selected flavor is {}".format(opts["flavor"]))
 
-    :param name: The name associated with this variable, defaults to "text"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -414,8 +403,8 @@ class text(BaseType):
         defaults to None, which allows text to be of any maximum length
     :type max_length: int, optional
     """
-    def __init__(self, name='text', description=None, default='', min_length=0, max_length=None):
-        super(text, self).__init__('text', name=name, description=description)
+    def __init__(self, description=None, default='', min_length=0, max_length=None):
+        super(text, self).__init__('text', description=description)
         self.default = default
         self.min_length = min_length
         self.max_length = max_length
@@ -451,8 +440,6 @@ class file(BaseType):
             result = do_something_with(args["directory"])
             return { "result": "success" if result else "failure" }
 
-    :param name: The name of this variable, defaults to None
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -462,8 +449,8 @@ class file(BaseType):
     :type extension: string, optional
     """
 
-    def __init__(self, name='file', description=None, is_directory=False, extension=None):
-        super(file, self).__init__('file', name=name, description=description)
+    def __init__(self, description=None, is_directory=False, extension=None):
+        super(file, self).__init__('file', description=description)
         self.is_directory = is_directory
         self.extension = extension
 
@@ -476,9 +463,9 @@ class file(BaseType):
                 return downloaded_path
         else:
             if not os.path.exists(path_or_url):
-                raise InvalidArgumentError('file path provided does not exist')
+                raise InvalidArgumentError(self.name or self.type, 'file path provided does not exist')
             if self.extension and not path_or_url.endswith(self.extension):
-                raise InvalidArgumentError('file path does not have expected extension')
+                raise InvalidArgumentError(self.name or self.type, 'file path does not have expected extension')
             return path_or_url
 
     def serialize(self, value):

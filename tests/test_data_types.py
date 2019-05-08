@@ -61,10 +61,9 @@ def test_data_type_interface_file():
 # BASE TYPE --------------------------------------------------------------------
 def test_base_type_to_dict():
 
-    base_type = BaseType('base', name='No name', description='Some description.')
+    base_type = BaseType('base', description='Some description.')
     obj = base_type.to_dict()
     assert obj['type'] == 'base'
-    assert obj['name'] == 'No name'
     assert obj['description'] == 'Some description.'
 
 # The BaseType is an abstract class that requires its serialize/deserialize
@@ -84,7 +83,6 @@ def test_any_to_dict():
     a = any()
     obj = a.to_dict()
     assert obj['type'] == 'any'
-    assert obj['name'] == 'field'
     assert obj['description'] == None
 
 def test_any_serialization():
@@ -114,7 +112,6 @@ def test_text_to_dict():
     txt = text(default=default, description=description, min_length=1, max_length=20)
     obj = txt.to_dict()
     assert obj['type'] == 'text'
-    assert obj['name'] == 'text'
     assert obj['default'] == default
     assert obj['minLength'] == 1
     assert obj['maxLength'] == 20
@@ -135,7 +132,6 @@ def test_number_to_dict():
     num = number(default=default, description=description, min=10, max=100)
     obj = num.to_dict()
     assert obj['type'] == 'number'
-    assert obj['name'] == 'number'
     assert obj['default'] == default
     assert obj['min'] == 10
     assert obj['max'] == 100
@@ -161,12 +157,15 @@ def test_array_to_dict():
     description = 'A description about this variable.'
     arr = array(item_type=text, description=description, min_length=5, max_length=10)
     obj = arr.to_dict()
-    assert obj['name'] == 'text_array'
+
     assert obj['type'] == 'array'
-    assert obj['itemType'] == text().to_dict()
     assert obj['minLength'] == 5
     assert obj['maxLength'] == 10
     assert obj['description'] == description
+
+    tmp = text()
+    tmp.name = 'text_array_item'
+    assert obj['itemType'] == tmp.to_dict()
 
 def test_array_no_item_type():
     with pytest.raises(MissingArgumentError):
@@ -196,7 +195,6 @@ def test_vector_to_dict():
     description = 'A description about this variable.'
     vec = vector(length=128, description=description, sampling_mean=0, sampling_std=1)
     obj = vec.to_dict()
-    assert obj['name'] == 'vector'
     assert obj['type'] == 'vector'
     assert obj['length'] == 128
     assert obj['samplingMean'] == 0
@@ -236,7 +234,6 @@ def test_category_to_dict():
     description = 'A description about this variable.'
     cat = category(choices=['one', 'two', 'three'], default='two', description=description)
     obj = cat.to_dict()
-    assert obj['name'] == 'category'
     assert obj['type'] == 'category'
     assert obj['oneOf'] == ['one', 'two', 'three']
     assert obj['default'] == 'two'
@@ -279,7 +276,6 @@ def test_category_deserialized_value_is_not_in_choices():
 def test_file_to_dict():
     f = file()
     obj = f.to_dict()
-    assert obj['name'] == 'file'
     assert obj['type'] == 'file'
     assert obj['description'] == None
 
@@ -287,7 +283,6 @@ def test_file_to_dict_directory():
     description = 'A description about this variable.'
     f = file(is_directory=True, description=description)
     obj = f.to_dict()
-    assert obj['name'] == 'file'
     assert obj['type'] == 'file'
     assert obj['isDirectory'] == True
     assert obj['description'] == description
@@ -378,7 +373,6 @@ def test_image_to_dict():
     img = image(channels=3, min_width=128, min_height=128, max_width=512, max_height=512)
     obj = img.to_dict()
     assert obj['type'] == 'image'
-    assert obj['name'] == 'image'
     assert obj['channels'] == 3
     assert obj['minWidth'] == 128
     assert obj['maxWidth'] == 512
