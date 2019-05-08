@@ -20,8 +20,6 @@ class BaseType(object):
 
     :param data_type: The data type represented as a string
     :type data_type: string
-    :param name: The name associated with this variable, defaults to None
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -62,15 +60,13 @@ class any(BaseType):
         from your_code import model
 
         # an example of passing your own yaml configuration using an "any" data_type and PyYAML
-        @runway.setup(options={ "configuration": any(name="yaml") })
+        @runway.setup(options={ "configuration": any() })
         def setup(opts):
             # parse the configuration string as yaml, and then pass the resulting
             # object as the configuration to your model
             config = yaml.load(opts["configuration"])
             return model(config)
 
-    :param name: The name associated with this variable, defaults to "field"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -103,9 +99,6 @@ class array(BaseType):
 
     :param item_type: A runway.data_type class, or an instance of a runway.data_type class
     :type item_type: runway.data_type
-    :param name: The name associated with this variable, defaults to "{item_type}_array" \
-        (e.g. "image_array")
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -166,8 +159,6 @@ class image(BaseType):
             # encoded data URI string by the @runway.command() decorator.
             return { "image": img }
 
-    :param name: The name associated with this variable, defaults to "image"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -243,8 +234,6 @@ class vector(BaseType):
             rand = np.random.random_sample(args["length"])
             return { "vector": vec.deserialize(rand) }
 
-    :param name: The name associated with this variable, defaults to "vector"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -302,8 +291,6 @@ class category(BaseType):
             def setup(opts):
                 print("The selected pixel order is {}".format(opts["pixel_order"]))
 
-        :param name: The name associated with this variable, defaults to "category"
-        :type name: string, optional
         :param description: A description of this variable and how its used in the model,
             defaults to None
         :type description: string, optional
@@ -355,8 +342,6 @@ class number(BaseType):
         def setup(opts):
             print("The number of samples is {}".format(opts["number_of_samples"]))
 
-    :param name: The name associated with this variable, defaults to None
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -407,8 +392,6 @@ class text(BaseType):
         def setup(opts):
             print("The selected flavor is {}".format(opts["flavor"]))
 
-    :param name: The name associated with this variable, defaults to "text"
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
@@ -457,8 +440,6 @@ class file(BaseType):
             result = do_something_with(args["directory"])
             return { "result": "success" if result else "failure" }
 
-    :param name: The name of this variable, defaults to None
-    :type name: string, optional
     :param description: A description of this variable and how its used in the model,
         defaults to None
     :type description: string, optional
