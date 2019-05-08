@@ -1,5 +1,10 @@
 # Changelog
 
+## Upcoming (CHANGE ME)
+
+- Add `description` keyword argument to all `runway.data_types` and `runway.command()`.
+- Create abstract `runway.data_types.BaseType` class that defines a common interface for all `runway.data_types`.
+
 ## v0.0.73
 
 - Add support for all remote filetypes over HTTP (we are currently only supporting tarballs)
