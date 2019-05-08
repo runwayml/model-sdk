@@ -18,8 +18,8 @@ class BaseType(object):
     """An abstract class that defines a base data type interface. This type
     should be used as the base class of new data types, never directly.
 
-    :param type: The data type represented as a string
-    :type type: string
+    :param data_type: The data type represented as a string
+    :type data_type: string
     :param name: The name associated with this variable, defaults to None
     :type name: string, optional
     :param description: A description of this variable and how its used in the model,
@@ -27,9 +27,8 @@ class BaseType(object):
     :type description: string, optional
     """
 
-    def __init__(self, type, name=None, description=None):
-        # WARNING: we are temporarily ghosting the Python type() builtin here
-        self.type = type
+    def __init__(self, data_type, name=None, description=None):
+        self.type = data_type
         self.name = name
         self.description = description
 
