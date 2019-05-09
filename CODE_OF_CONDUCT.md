@@ -56,7 +56,7 @@ No weapons will be allowed at Runway events, community spaces, or in other space
 
 ### 5. Reporting an Incident
 
-If you are at an event and experience any unacceptable please do reach out to Runway staff as soon as possible. We will handle any form of unacceptable behavior as soon as it comes to our attention.
+If you are at an event and experience any unacceptable behavior please do reach out to Runway staff as soon as possible. We will handle any form of unacceptable behavior as soon as it comes to our attention.
 
 If you are subject to or witness unacceptable behavior and want to raise an incident report, please do use our [reporting tool to report the incident](https://docs.google.com/forms/d/e/1FAIpQLSeFaYn-dBkCJ9hRcrCktw1XfqgE8Gf5fu6XnK9FUBIV36iBnQ/viewform) as soon as you can. If you choose to raise an incident report, we will ensure we investigate and provide followup within 2 weeks of the report. Your information will remain confidential from submitting the report.
 
