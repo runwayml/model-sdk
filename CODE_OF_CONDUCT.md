@@ -10,7 +10,7 @@ Our Code of Conduct (CoC) at Runway aims to ensure we create an inclusive and di
 
 This code of conduct applies to both online platforms and in-person experiences.
 
-If you find you are a victim, or witness any form of harrassment, either alert a Runyway Organiser immediately, or please use our [reporting tool to report the incident](https://docs.google.com/forms/d/e/1FAIpQLSeFaYn-dBkCJ9hRcrCktw1XfqgE8Gf5fu6XnK9FUBIV36iBnQ/viewform).
+If you find you are a victim, or witness any form of harrassment, either alert a Runway Organiser immediately, or please use our [reporting tool to report the incident](https://docs.google.com/forms/d/e/1FAIpQLSeFaYn-dBkCJ9hRcrCktw1XfqgE8Gf5fu6XnK9FUBIV36iBnQ/viewform).
 
 
 ## In Detail
