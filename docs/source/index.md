@@ -88,7 +88,7 @@ files:
     ignore:
         - image_dataset/*
 build_steps:
-    - pip install runway-python==0.1.0
+    - pip install runway-python
     - pip install -r requirements.txt
 ```
 

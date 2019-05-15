@@ -44,7 +44,7 @@ files:
 build_steps:
     # We recommend pinning to a specific version of the Runway Model SDK until
     # the first major release, as breaking changes may be introduced to the SDK
-    - pip install runway-python==0.1.0
+    - pip install runway-python==0.0.74
     - pip install -r requirements.txt
     # The if_gpu and if_cpu directives can be used to run build steps
     # conditionally depending on the build environment.
