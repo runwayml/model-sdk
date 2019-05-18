@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Ensure that the local version of the runway module is used, not a pip
 # installed version
 import sys
@@ -34,19 +35,23 @@ def test_model_setup_and_command():
             'type': 'category',
             'name': 'size',
             'oneOf': ['big', 'small'],
-            'default': 'big'
+            'default': 'big',
+            'description': 'The size of the model. Bigger is better but also slower.',
         }],
         'commands': [{
             'name': 'test_command',
+            'description': None,
             'inputs': [{
                 'type': 'text',
                 'name': 'input',
+                'description': 'Some input text.',
                 'default': '',
                 'minLength': 0
             }],
             'outputs': [{
                 'type': 'number',
                 'name': 'output',
+                'description': 'An output number.',
                 'default': 0,
                 'min': 0,
                 'max': 1,
@@ -57,14 +62,24 @@ def test_model_setup_and_command():
 
     rw = RunwayModel()
 
-    @rw.setup(options={ 'size': category(choices=['big', 'small']) })
+    description = 'The size of the model. Bigger is better but also slower.'
+    @rw.setup(options={ 'size': category(choices=['big', 'small'], description=description) })
     def setup(opts):
         closure['setup_ran'] = True
         return {}
 
-    inputs = { 'input': text }
-    outputs = { 'output': number }
-    @rw.command('test_command', inputs=inputs, outputs=outputs)
+    inputs = { 'input': text(description='Some input text.') }
+    outputs = { 'output': number(description='An output number.') }
+
+    # Python 2.7 doesn't seem to handle emoji serialization correctly in JSON,
+    # so we will only test emoji serialization/deserialization in Python 3
+    if sys.version_info[0] < 3:
+        description = 'Sorry, Python 2 doesn\'t support emoji very well'
+    else:
+        description = 'A test command whose description contains emoji 🕳'
+    expected_manifest['commands'][0]['description'] = description
+
+    @rw.command('test_command', inputs=inputs, outputs=outputs, description=description)
     def test_command(model, opts):
         closure['command_ran'] = True
         return 100
@@ -248,6 +263,7 @@ def test_meta(capsys):
         pass
 
     kwargs_2 = {
+        'description': 'This command is used for testing.',
         'inputs': {
             'any': any_type,
             'file': file
@@ -267,25 +283,30 @@ def test_meta(capsys):
                 'minLength': 0,
                 'type': 'array',
                 'name': 'initialization_array',
+                'description': None,
                 'itemType': {
                     'default': '',
                     'minLength': 0,
                     'type': 'text',
-                    'name': 'text'
+                    'name': 'text_array_item',
+                    'description': None
                 }
             }
         ],
         'commands': [
             {
                 'name': 'command_2',
+                'description': 'This command is used for testing.',
                 'inputs': [
                     {
                         'type': 'any',
                         'name': 'any',
+                        'description': None,
                     },
                     {
                         'type': 'file',
                         'name': 'file',
+                        'description': None,
                     },
                 ],
                 'outputs': [
@@ -296,16 +317,19 @@ def test_meta(capsys):
                         'max': 100,
                         'step': 1,
                         'type': 'number',
+                        'description': None
                     },
                 ]
             },
             {
                 'name': 'command_1',
+                'description': None,
                 'inputs': [
                     {
                         'channels': 3,
                         'type': 'image',
                         'name': 'image',
+                        'description': None
                     },
                     {
                         'samplingMean': 0,
@@ -313,7 +337,8 @@ def test_meta(capsys):
                         'type': 'vector',
                         'name': 'vector',
                         'samplingStd': 1,
-                        'default': [0, 0, 0, 0, 0]
+                        'default': [0, 0, 0, 0, 0],
+                        'description': None
                     },
                 ],
                 'outputs': [
@@ -321,7 +346,8 @@ def test_meta(capsys):
                         'default': '',
                         'minLength': 0,
                         'type': 'text',
-                        'name': 'label'
+                        'name': 'label',
+                        'description': None
                     }
                 ]
             }

@@ -4,7 +4,7 @@ from runway.data_types import any
 # from your_code import model
 
 # an example of passing your own yaml configuration using an "any" data_type and PyYAML
-@runway.setup(options={ "configuration": any(name="yaml") })
+@runway.setup(options={ "configuration": any() })
 def setup(opts):
     config = yaml.load(opts["configuration"])
     print(config)

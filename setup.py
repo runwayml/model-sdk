@@ -46,7 +46,7 @@ class VerifyVersionCommand(Command):
             sys.exit(info)
 
 class TagReleaseCommand(Command):
-    """Custom command to verify that the git tag matches our version"""
+    """Custom command to use the version from __version__.py to tag a release"""
     description = 'verify that the git tag matches our version'
 
     user_options = []
@@ -80,7 +80,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7"        
+        "Programming Language :: Python :: 3.7"
     ],
     cmdclass={
         'verify': VerifyVersionCommand,

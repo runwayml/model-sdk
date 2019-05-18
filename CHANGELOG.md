@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.74
+
+- Remove `name` keyword argument from all `runway.data_types`. [#13](https://github.com/runwayml/model-sdk/issues/13)
+- Add `description` keyword argument to all `runway.data_types` and `runway.command()`. [#12](https://github.com/runwayml/model-sdk/issues/12)
+- Create abstract `runway.data_types.BaseType` class that defines a common interface for all `runway.data_types`.
+
 ## v0.0.73
 
 - Add support for all remote filetypes over HTTP (we are currently only supporting tarballs)
