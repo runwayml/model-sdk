@@ -5,13 +5,15 @@ import datetime
 import traceback
 import json
 from six import reraise
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
-from .utils import gzipped, serialize_command, cast_to_obj
+from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
+        validate_post_request_body_is_json, get_json_or_none_if_invalid
+from .__version__ import __version__ as model_sdk_version
 
 class RunwayModel(object):
     """A Runway Model server. A singleton instance of this class is created automatically
@@ -19,6 +21,8 @@ class RunwayModel(object):
     """
 
     def __init__(self):
+        self.millis_run_started_at = None
+        self.millis_last_command = None
         self.options = []
         self.setup_fn = None
         self.commands = {}
@@ -27,35 +31,75 @@ class RunwayModel(object):
         self.running_status = 'STARTING'
         self.app = Flask(__name__)
         CORS(self.app)
+        self.define_error_handlers()
         self.define_routes()
 
+    def define_error_handlers(self):
+
+        # not yet implemented, but if and when it is lets make sure its returned
+        # as JSON
+        @self.app.errorhandler(401)
+        def unauthorized(e):
+            msg = 'Unauthorized (well... '
+            msg += 'really unauthenticated but hey I didn\'t write the spec).'
+            return jsonify(dict(error=msg)), 401
+
+        # not yet implemented, but if and when it is lets make sure its returned
+        # as JSON
+        @self.app.errorhandler(403)
+        def forbidden(e):
+            return jsonify(dict(error='Forbidden.')), 403
+
+        @self.app.errorhandler(404)
+        def page_not_found(e):
+            return jsonify(dict(error='Not found.')), 404
+
+        @self.app.errorhandler(405)
+        def method_not_allowed(e):
+            return jsonify(dict(error='Method not allowed.')), 405
+
+        # we shouldn't have any of these as we are wrapping errors in
+        # RunwayError objects and returning stacktraces, but it can't hurt
+        # to be safe.
+        @self.app.errorhandler(500)
+        def internal_server_error(e):
+            return jsonify(dict(error='Internal server error.')), 500
+
     def define_routes(self):
-        @self.app.route('/')
+
+        @self.app.route('/', methods=['GET'])
+        @self.app.route('/meta', methods=['GET'])
         def manifest():
-            return json.dumps(dict(
+            return jsonify(dict(
+                modelSDKVersion=model_sdk_version,
+                millisRunning=self.millis_running(),
+                millisSinceLastCommand=self.millis_since_last_command(),
+                GPU=os.environ.get('GPU') == '1',
                 options=[opt.to_dict() for opt in self.options],
                 commands=[serialize_command(cmd) for cmd in self.commands.values()]
             ))
 
-        @self.app.route('/healthcheck')
+        @self.app.route('/healthcheck', methods=['GET'])
         def healthcheck_route():
-            return self.running_status
+            return jsonify(dict(status=self.running_status))
 
         @self.app.route('/setup', methods=['POST'])
+        @validate_post_request_body_is_json
         def setup_route():
-            opts = request.json
+            opts = get_json_or_none_if_invalid(request)
             try:
                 self.setup_model(opts)
-                return json.dumps(dict(success=True))
+                return jsonify(dict(success=True))
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response()), err.code
+                return jsonify(err.to_response()), err.code
 
         @self.app.route('/setup', methods=['GET'])
         def setup_options_route():
-            return json.dumps(self.options)
+            return jsonify(self.options)
 
         @self.app.route('/<command_name>', methods=['POST'])
+        @validate_post_request_body_is_json
         def command_route(command_name):
             try:
                 try:
@@ -64,7 +108,7 @@ class RunwayModel(object):
                     raise UnknownCommandError(command_name)
                 inputs = self.commands[command_name]['inputs']
                 outputs = self.commands[command_name]['outputs']
-                input_dict = request.json
+                input_dict = get_json_or_none_if_invalid(request)
                 deserialized_inputs = {}
                 for inp in inputs:
                     name = inp.name
@@ -73,6 +117,7 @@ class RunwayModel(object):
                     value = input_dict[name] or getattr(inp, 'default', None)
                     deserialized_inputs[name] = inp.deserialize(value)
                 try:
+                    self.millis_last_command = timestamp_millis()
                     results = command_fn(self.model, deserialized_inputs)
                     if type(results) != dict:
                         name = outputs[0].name
@@ -86,11 +131,11 @@ class RunwayModel(object):
                 for out in outputs:
                     name = out.to_dict()['name']
                     serialized_outputs[name] = out.serialize(results[name])
-                return json.dumps(serialized_outputs).encode('utf8')
+                return jsonify(serialized_outputs)
 
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response()), err.code
+                return jsonify(err.to_response()), err.code
 
         @self.app.route('/<command_name>', methods=['GET'])
         def usage_route(command_name):
@@ -99,10 +144,18 @@ class RunwayModel(object):
                     command = self.commands[command_name]
                 except KeyError:
                     raise UnknownCommandError(command_name)
-                return json.dumps(serialize_command(command))
+                return jsonify(serialize_command(command))
             except RunwayError as err:
                 err.print_exception()
-                return json.dumps(err.to_response())
+                return jsonify(err.to_response()), err.code
+
+    def millis_running(self):
+        if self.millis_run_started_at is None: return None
+        return timestamp_millis() - self.millis_run_started_at
+
+    def millis_since_last_command(self):
+        if self.millis_last_command is None: return None
+        return timestamp_millis() - self.millis_last_command
 
     def setup(self, decorated_fn=None, options=None):
         """This decorator is used to wrap your own ``setup()`` (or equivalent)
@@ -263,10 +316,13 @@ class RunwayModel(object):
             except Exception as err:
                 raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         elif self.setup_fn:
-            self.model = self.setup_fn()
+            try:
+                self.model = self.setup_fn()
+            except Exception as err:
+                raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         self.running_status = 'RUNNING'
 
-    def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False):
+    def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False, no_serve=False):
         """Run the model and start listening for HTTP requests on the network.
         By default, the server will run on port ``8000`` and listen on all
         network interfaces (``0.0.0.0``).
@@ -312,6 +368,15 @@ class RunwayModel(object):
             the Runway model at runtime. This value will be overwritten by the
             ``RW_META`` environment variable if it is present.
         :type meta: boolean, optional
+        :param no_serve: Don't start the Flask server, defaults to ``False``
+            (i.e. the Flask server is started by default when the
+            ``runway.run()`` function is called without setting this argument
+            set to True). This functionality is used during automated testing to
+            mock HTTP requests using Flask's ``app.test_client()``
+            (see Flask's testing_ docs for more details).
+        :type meta: boolean, optional
+
+        .. _testing: http://flask.pocoo.org/docs/1.0/testing/
 
         .. warning::
             All keyword arguments to the ``runway.run()`` function will be
@@ -337,20 +402,30 @@ class RunwayModel(object):
               argument. ``RW_DEBUG=1`` enables debug mode.
             - ``RW_META``: Defines the behavior of the ``runway.run()``
               function. If ``RW_META=1`` the function prints the model's options
-              and commands as JSON and then exits. This environment variables
-              overwrites any value passed as the ``meta`` keyward argument.
+              and commands as JSON and then exits. This environment variable
+              overwrites any value passed as the ``meta`` keyword argument.
+            - ``RW_NO_SERVE``: Forces ``runway.run()`` to not start its Flask
+              server. This environment variable overwrites any value passed as
+              the ``no_serve`` keyword argument.
         """
 
         env_host          = os.getenv('RW_HOST')
         env_port          = os.getenv('RW_PORT')
         env_meta          = os.getenv('RW_META')
         env_debug         = os.getenv('RW_DEBUG')
+        env_no_serve      = os.getenv('RW_NO_SERVE')
         env_model_options = os.getenv('RW_MODEL_OPTIONS')
 
-        if env_host is not None:  host = env_host
-        if env_port is not None:  port = int(env_port)
-        if env_meta is not None:  meta = bool(int(env_meta))
-        if env_debug is not None: debug = bool(int(env_debug))
+        if env_host is not None:
+            host = env_host
+        if env_port is not None:
+            port = int(env_port)
+        if env_meta is not None:
+            meta = bool(int(env_meta))
+        if env_debug is not None:
+            debug = bool(int(env_debug))
+        if env_no_serve is not None:
+            no_serve = bool(int(env_no_serve))
         if env_model_options is not None:
             model_options = json.loads(env_model_options)
 
@@ -366,14 +441,20 @@ class RunwayModel(object):
         except RunwayError as err:
             err.print_exception()
             sys.exit(1)
-        print('Starting model server at http://{0}:{1}...'.format(host, port))
-        if debug:
-            logging.basicConfig(level=logging.DEBUG)
-            self.app.debug = True
-            self.app.run(host=host, port=port, debug=True, threaded=True)
+
+        # start the run started at millis timer even if we don't actually serve
+        self.millis_run_started_at = timestamp_millis()
+        if no_serve:
+            print('Not starting model server because "no_serve" directive is present.')
         else:
-            http_server = WSGIServer((host, port), self.app)
-            try:
-                http_server.serve_forever()
-            except KeyboardInterrupt:
-                print('Stopping server...')
+            print('Starting model server at http://{0}:{1}...'.format(host, port))
+            if debug:
+                logging.basicConfig(level=logging.DEBUG)
+                self.app.debug = True
+                self.app.run(host=host, port=port, debug=True, threaded=True)
+            else:
+                http_server = WSGIServer((host, port), self.app)
+                try:
+                    http_server.serve_forever()
+                except KeyboardInterrupt:
+                    print('Stopping server...')

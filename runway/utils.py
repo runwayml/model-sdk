@@ -7,12 +7,13 @@ import os
 import functools
 import sys
 import gzip
+import datetime
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
     from io import BytesIO as IO
 import numpy as np
-from flask import after_this_request, request
+from flask import after_this_request, request, jsonify
 import colorsys
 
 
@@ -24,6 +25,19 @@ URL_REGEX = re.compile(
         r'(?::\d+)?' # optional port
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
+def validate_post_request_body_is_json(f):
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        json = get_json_or_none_if_invalid(request)
+        if json is not None:
+            return f(*args, **kwargs)
+        else:
+            err_msg = 'The body of all POST requests must contain JSON'
+            return jsonify(dict(error=err_msg)), 400
+    return wrapped
+
+def get_json_or_none_if_invalid(request):
+    return request.get_json(force=True, silent=True)
 
 def serialize_command(cmd):
     ret = {}
@@ -37,15 +51,16 @@ def is_url(path):
     return re.match(URL_REGEX, path)
 
 
-def download_to_temp_dir(url):
-    print('Downloading file: %s' % url)
-    tmp_path = tempfile.mkdtemp()
-    fname = wget.download(url)
-    tar = tarfile.open(fname, "r:gz")
-    tar.extractall(path=tmp_path)
-    tar.close()
-    os.remove(fname)
-    return tmp_path
+def download_file(url):
+    download_dir = tempfile.mkdtemp()
+    return wget.download(url, out=download_dir)
+
+
+def extract_tarball(path):
+    extracted_dir = tempfile.mkdtemp()
+    with tarfile.open(path, 'r:*') as tar:
+        tar.extractall(path=extracted_dir)
+    return extracted_dir
 
 
 def gzip_decompress(data):
@@ -109,3 +124,8 @@ def random_color_map(n_labels):
         rgb_colors.append(colorsys.hsv_to_rgb(hsv_color[0], hsv_color[1], hsv_color[2]))
     rgb_colors[0] = [0, 0, 0]
     return [[round(r*255), round(g*255), round(b*255)] for r, g, b in rgb_colors]
+
+
+def timestamp_millis():
+    offset = datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)
+    return int(offset.total_seconds() * 1000)

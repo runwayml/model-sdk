@@ -85,9 +85,10 @@ class InvalidArgumentError(RunwayError):
     :ivar code: An HTTP error code, set to 400
     :type code: number
     """
-    def __init__(self, name):
+    def __init__(self, name, message=None):
         super(InvalidArgumentError, self).__init__()
         self.message = 'Invalid argument: %s.' % name
+        if message is not None: self.message += ' %s' % message
         self.code = 400
 
 
