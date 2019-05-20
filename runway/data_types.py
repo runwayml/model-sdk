@@ -478,8 +478,34 @@ class file(BaseType):
         return ret
 
 
-class semantic_map(object):
-    def __init__(self, name=None, default_label=None, label_map=None, color_map=None, width=None, height=None):
+class point(BaseType):
+    """A datatype that represents a coordinate in an image.
+
+    """
+    def __init__(self, description=None, source=None, scale=True):
+        pass
+
+    def serialize(self, value):
+        return [value[0], value[1]]
+    
+    def deserialize(self, value):
+        pass
+    
+
+class bbox(BaseType):
+    """A datatype that represents a bounding box in an image.
+
+    """
+    def __init__(self, description=None, source=None, scale=True):
+        pass
+    
+
+class segmentation(BaseType):
+    """A datatype that represents a segmentation of an input image.
+
+    """
+    def __init__(self, description=None, source=None, default_label=None, label_map=None, color_map=None, width=None, height=None):
+        super(segmentation, self).__init__('semantic_map', description=description)
         if label_map is None:
             raise MissingArgumentError('label_map')
         if type(label_map) is not dict or len(label_map.keys()) == 0:
@@ -512,9 +538,7 @@ class semantic_map(object):
         return value.tolist()
 
     def to_dict(self):
-        ret = {}
-        ret['type'] = 'semantic_map'
-        ret['name'] = self.name
+        ret = super(semantic_map, self).to_dict()
         ret['defaultLabel'] = self.default_label
         ret['labelMap'] = self.label_map
         ret['colorMap'] = self.color_map
