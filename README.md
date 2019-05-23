@@ -48,6 +48,33 @@ python3 setup.py install
 make dev
 ```
 
+### Testing
+
+Automated tests for the Runway Model SDK are written using `pytest` and live in the `tests/` directory. We also provide support for code coverage via `pytest-cov`. Tests can be run in both Python 2.7 or Python 3 environments.
+
+```bash
+## Create and activate a python3 virtual environment if you need to.
+# virtualenv -p python3 venv && source ./venv/bin/activate
+
+# make sure you have the development dependencies installed
+make dev
+
+# run the tests
+make test
+
+# by default pytest suppresses stdout and stderr during testing, so run tests
+# like this if you'd like to see the output from your print() statements during
+# testing
+make test-debug
+
+# to generate coverage statistics while running tests, use this command.
+# it prints test coverage to the console and also generates a more detailed HTML
+# report in htmlcov/.
+make coverage
+```
+
+If you make a PR against this repo, please be sure to include automated tests to validate that your code works as expected. PRs will be automatically blocked by a [Codecov](https://codecov.io/) bot if their changes reduce the overall test coverage of the Runway Model SDK package.
+
 ### Building the Docs
 
 The Model SDK documentation is generated from inline source code using docstrings,  [Sphinx](http://www.sphinx-doc.org/en/master/), and a modified Read the Docs HTML theme. The version of Sphinx that we are using (v2.0.1) requires Python 3.
@@ -65,3 +92,6 @@ make docs
 
 Your auto-generated HTML docs should now appear in `docs/build/html`.
 
+### Questions
+
+We have a `#model-sdk` channel in our public [Slack](https://runwayml.slack.com/) workspace that you can use to ask questions or chat with the Runway team about this Python module. Feel free to open an issue as well!
