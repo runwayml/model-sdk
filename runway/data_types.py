@@ -480,7 +480,6 @@ class file(BaseType):
 
 class segmentation(BaseType):
     """A datatype that represents a segmentation of an input image.
-
     """
     def __init__(self, description=None, source=None, default_label=None, label_map=None, color_map=None, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
         super(segmentation, self).__init__('semantic_map', description=description)
