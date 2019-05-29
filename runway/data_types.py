@@ -478,33 +478,11 @@ class file(BaseType):
         return ret
 
 
-class point(BaseType):
-    """A datatype that represents a coordinate in an image.
-
-    """
-    def __init__(self, description=None, source=None, scale=True):
-        pass
-
-    def serialize(self, value):
-        return [value[0], value[1]]
-    
-    def deserialize(self, value):
-        pass
-    
-
-class bbox(BaseType):
-    """A datatype that represents a bounding box in an image.
-
-    """
-    def __init__(self, description=None, source=None, scale=True):
-        pass
-    
-
 class segmentation(BaseType):
     """A datatype that represents a segmentation of an input image.
 
     """
-    def __init__(self, description=None, source=None, default_label=None, label_map=None, color_map=None, width=None, height=None):
+    def __init__(self, description=None, source=None, default_label=None, label_map=None, color_map=None, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
         super(segmentation, self).__init__('semantic_map', description=description)
         if label_map is None:
             raise MissingArgumentError('label_map')
@@ -517,12 +495,16 @@ class segmentation(BaseType):
         if color_map and set(color_map.keys()) != set(label_map.values()):
             msg = 'color_map argument does not cover all labels'
             raise InvalidArgumentError(msg)
-        self.name = name or 'semantic_map'
+        self.source = source
         self.label_map = label_map
         self.default_label = default_label or list(self.label_map.values())[0]
         self.color_map = color_map or self.generate_color_map()
         self.width = width
         self.height = height
+        self.min_width = min_width
+        self.min_height = min_height
+        self.max_width = max_width
+        self.max_height = max_height
 
     def generate_color_map(self):
         colors = random_color_map(len(self.label_map.keys()))
@@ -532,16 +514,39 @@ class segmentation(BaseType):
         return color_map
 
     def deserialize(self, value):
-        return np.array(value)
+        if type(value) == list:
+            return np.array(value)
+        elif type(value) == str:
+            try:
+                image = value[value.find(",")+1:]
+                image = base64.decodestring(image.encode('utf8'))
+                buffer = IO(image)
+                return np.array(Image.open(buffer))
+            except:
+                msg = 'unable to parse expected base64-encoded image'
+                raise InvalidArgumentError(msg)
 
     def serialize(self, value):
-        return value.tolist()
+        if type(value) is np.ndarray:
+            im_pil = Image.fromarray(value)
+        elif issubclass(type(value), Image.Image):
+            im_pil = value
+        else:
+            raise InvalidArgumentError(self.name or self.type, 'value is not a PIL or numpy image')
+        buffer = IO()
+        im_pil.save(buffer, format='PNG')
+        return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
 
     def to_dict(self):
         ret = super(semantic_map, self).to_dict()
+        ret['source'] = self.source
         ret['defaultLabel'] = self.default_label
         ret['labelMap'] = self.label_map
         ret['colorMap'] = self.color_map
-        ret['width'] = self.width
-        ret['height'] = self.height
+        if self.min_width: ret['minWidth'] = self.min_width
+        if self.max_width: ret['maxWidth'] = self.max_width
+        if self.min_height: ret['minHeight'] = self.min_height
+        if self.max_height: ret['maxHeight'] = self.max_height
+        if self.width: ret['width'] = self.width
+        if self.height: ret['height'] = self.height
         return ret
