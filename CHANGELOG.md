@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.75
+
+- Use PNG as default serialization format for images.
+
 ## v0.0.74
 
 - Remove `name` keyword argument from all `runway.data_types`. [#13](https://github.com/runwayml/model-sdk/issues/13)
