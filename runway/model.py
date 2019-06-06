@@ -3,6 +3,7 @@ import sys
 import logging
 import datetime
 import traceback
+import inspect
 import json
 from six import reraise
 from flask import Flask, request, jsonify
@@ -332,7 +333,10 @@ class RunwayModel(object):
                 raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         elif self.setup_fn:
             try:
-                self.model = self.setup_fn()
+                if len(inspect.getfullargspec(self.setup_fn).args) == 0:
+                    self.model = self.setup_fn()
+                else:
+                    self.model = self.setup_fn({})
             except Exception as err:
                 raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         self.running_status = 'RUNNING'
