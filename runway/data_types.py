@@ -202,8 +202,8 @@ class image(BaseType):
         else:
             raise InvalidArgumentError(self.name or self.type, 'value is not a PIL or numpy image')
         buffer = IO()
-        im_pil.save(buffer, format='JPEG')
-        return 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
+        im_pil.save(buffer, format='PNG')
+        return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
 
     def to_dict(self):
         ret = super(image, self).to_dict()
