@@ -120,9 +120,12 @@ class RunwayModel(object):
                 deserialized_inputs = {}
                 for inp in inputs:
                     name = inp.name
-                    if name not in input_dict and getattr(inp, 'default', None) is None:
+                    if name in input_dict:
+                        value = input_dict[name]
+                    elif hasattr(inp, 'default'):
+                        value = inp.default
+                    else:
                         raise MissingInputError(name)
-                    value = input_dict[name] or getattr(inp, 'default', None)
                     deserialized_inputs[name] = inp.deserialize(value)
                 try:
                     self.millis_last_command = timestamp_millis()
@@ -323,7 +326,7 @@ class RunwayModel(object):
                 opt.name = name
                 if name in opts:
                     deserialized_opts[name] = opt.deserialize(opts[name])
-                elif getattr(opt, 'default', None) is not None:
+                elif hasattr(opt, 'default'):
                     deserialized_opts[name] = opt.default
                 else:
                     raise MissingOptionError(name)
