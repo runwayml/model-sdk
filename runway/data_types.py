@@ -553,7 +553,7 @@ class segmentation(BaseType):
     def deserialize(self, value):
         if type(value) == list:
             return Image.fromarray(np.array(value))
-        elif type(value) == str:
+        else:
             try:
                 image = value[value.find(",")+1:]
                 image = base64.decodestring(image.encode('utf8'))
