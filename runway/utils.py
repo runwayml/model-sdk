@@ -15,7 +15,6 @@ else:
     from io import BytesIO as IO
 import numpy as np
 from flask import after_this_request, request, jsonify
-import colorsys
 
 
 URL_REGEX = re.compile(
