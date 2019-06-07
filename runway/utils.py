@@ -8,6 +8,7 @@ import functools
 import sys
 import gzip
 import datetime
+import colorcet
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
@@ -115,20 +116,11 @@ def cast_to_obj(cls_or_obj):
     return cls_or_obj
 
 
-# Generate random colormap, adapted from https://github.com/delestro/rand_cmap/blob/master/rand_cmap.py
-def random_color_map(n_labels):
-    # Set random seed to ensure that we always get the same color map for a given value of n_labels
-    r = np.random.RandomState(0)
-    hsv_colors = [(r.uniform(low=0.0, high=1),
-                   r.uniform(low=0.2, high=1),
-                   r.uniform(low=0.9, high=1)) for i in range(n_labels)]
-    rgb_colors = []
-    for hsv_color in hsv_colors:
-        rgb_colors.append(colorsys.hsv_to_rgb(hsv_color[0], hsv_color[1], hsv_color[2]))
-    rgb_colors[0] = [0, 0, 0]
-    return [[round(r*255), round(g*255), round(b*255)] for r, g, b in rgb_colors]
-
-
 def timestamp_millis():
     offset = datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)
     return int(offset.total_seconds() * 1000)
+
+
+def get_color_palette(name):
+    palette = getattr(colorcet, name)
+    return [[int(c[0]*255), int(c[1]*255), int(c[2]*255)] for c in palette]
