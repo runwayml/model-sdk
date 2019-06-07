@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.75
+
+- Use PNG as default serialization format for images.
+
 ## v0.0.74
 
 - Use PNG, instead of JPEG, as default serialization format for images.
