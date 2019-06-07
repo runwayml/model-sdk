@@ -415,7 +415,6 @@ def test_segmentation_serialize_and_deserialize():
     img = Image.open(os.path.join(directory, 'test_segmentation.png'))
     serialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).serialize(img)
     deserialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).deserialize(serialized_pil)
-    print('deserialized_pil', deserialized_pil)
     assert issubclass(type(deserialized_pil), Image.Image)
 
     serialize_np_img = segmentation(label_to_id={"background": 0, "person": 1}).serialize(np.asarray(img))
