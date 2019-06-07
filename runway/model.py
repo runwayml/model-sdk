@@ -13,7 +13,7 @@ from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
 from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
-        validate_post_request_body_is_json, get_json_or_none_if_invalid
+        validate_post_request_body_is_json, get_json_or_none_if_invalid, argspec
 from .__version__ import __version__ as model_sdk_version
 
 class RunwayModel(object):
@@ -336,7 +336,7 @@ class RunwayModel(object):
                 raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         elif self.setup_fn:
             try:
-                if len(inspect.getfullargspec(self.setup_fn).args) == 0:
+                if len(argspec(self.setup_fn).args) == 0:
                     self.model = self.setup_fn()
                 else:
                     self.model = self.setup_fn({})

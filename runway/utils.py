@@ -113,6 +113,14 @@ def cast_to_obj(cls_or_obj):
         return cls_or_obj()
     return cls_or_obj
 
+
 def timestamp_millis():
     offset = datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)
     return int(offset.total_seconds() * 1000)
+
+
+def argspec(fn):
+    if sys.version_info[0] < 3:
+        return inspect.getargspec(fn)
+    else:
+        return inspect.getfullargspec(fn)
