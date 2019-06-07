@@ -422,6 +422,21 @@ def test_segmentation_serialize_and_deserialize():
     deserialize_np_img = segmentation(label_to_id={"background": 0, "person": 1}).deserialize(serialize_np_img)
     assert issubclass(type(deserialize_np_img), Image.Image)
 
+def test_segmentation_no_label_to_id():
+    with pytest.raises(MissingArgumentError):
+        segmentation()
+
+def test_segmentation_invalid_label_to_id():
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id={})
+
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id=[])
+
+def test_segmentation_invalid_default_label():
+    with pytest.raises(InvalidArgumentError):
+         segmentation(label_to_id={"background": 0, "person": 1}, default_label='building')
+
 def test_segmentation_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         segmentation(label_to_id={"background": 0, "person": 1}).serialize(True)
