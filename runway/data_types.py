@@ -552,7 +552,7 @@ class segmentation(BaseType):
 
     def deserialize(self, value):
         if type(value) == list:
-            return Image.fromarray(np.array(value))
+            return Image.fromarray(np.array(value), 'L')
         else:
             try:
                 image = value[value.find(",")+1:]
