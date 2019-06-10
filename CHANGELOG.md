@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.77
+
+- Add `segmentation` data type.
+
 ## v0.0.75
 
 - Use PNG as default serialization format for images.

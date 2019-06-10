@@ -482,8 +482,8 @@ class segmentation(BaseType):
     """A datatype that represents a pixel-level segmentation of an image.
     Each pixel is annotated with a label id from 0-255, each corresponding to a
     different object class.
-    When used as an input data type, `segmentation` accepts either a two-dimensional array
-    or a 1-channel base64-encoded PNG image.
+    When used as an input data type, `segmentation` accepts either a two-dimensional array,
+    a 1-channel base64-encoded PNG image, or a 3-channel base64-encoded PNG colormap image.
     When used as an output data type, it serializes as a 1-channel base64-encoded PNG image.
 
     .. code-block:: python
@@ -531,8 +531,8 @@ class segmentation(BaseType):
             msg = 'default_label {} is not in label map'.format(default_label)
             raise InvalidArgumentError(msg)
         self.label_to_id = label_to_id
-        self.label_to_color = self.complete_color_map(label_to_color or {})
-        self.default_label = default_label or list(self.label_to_id.values())[0]
+        self.label_to_color = self.complete_colors(label_to_color or {})
+        self.default_label = default_label or list(self.label_to_id.keys())[0]
         self.width = width
         self.height = height
         self.min_width = min_width
@@ -540,25 +540,37 @@ class segmentation(BaseType):
         self.max_width = max_width
         self.max_height = max_height
 
-    def complete_color_map(self, seed_color_map):
-        color_map = {}
+    def complete_colors(self, seed_colors):
+        colors = {}
         palette = get_color_palette('glasbey_bw')
         for label, label_id  in self.label_to_id.items():
-            if label in seed_color_map:
-                color_map[label] = seed_color_map[label]
+            if label in seed_colors:
+                colors[label] = seed_colors[label]
             else:
-                color_map[label] = palette[label_id]
-        return color_map
+                colors[label] = palette[label_id]
+        return colors
+
+    def colormap_to_segmentation(self, img):
+        cmap = np.array(img)[:, :, :3]
+        seg = np.zeros(cmap.shape[:2], dtype=np.uint8)
+        for label, color in self.label_to_color.items():
+            label_id = self.label_to_id[label]
+            seg[(cmap==color).all(axis=2)] = label_id
+        return Image.fromarray(seg, 'L')
 
     def deserialize(self, value):
         if type(value) == list:
-            return Image.fromarray(np.array(value), 'L')
+            return Image.fromarray(np.array(value).astype(np.uint8), 'L')
         else:
             try:
                 image = value[value.find(",")+1:]
                 image = base64.decodestring(image.encode('utf8'))
                 buffer = IO(image)
-                return Image.open(buffer)
+                img = Image.open(buffer)
+                if img.mode.startswith('RGB'):
+                    return self.colormap_to_segmentation(img)
+                else:
+                    return img
             except:
                 msg = 'unable to parse expected base64-encoded image'
                 raise InvalidArgumentError(msg)
@@ -576,6 +588,7 @@ class segmentation(BaseType):
 
     def to_dict(self):
         ret = super(segmentation, self).to_dict()
+        ret['labels'] = list(self.label_to_id.keys())
         ret['defaultLabel'] = self.default_label
         ret['labelToId'] = self.label_to_id
         ret['labelToColor'] = self.label_to_color
