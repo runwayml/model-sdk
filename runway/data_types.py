@@ -527,7 +527,7 @@ class segmentation(BaseType):
         if type(label_to_id) is not dict or len(label_to_id.keys()) == 0:
             msg = 'label_to_id argument has invalid type'
             raise InvalidArgumentError(msg)
-        if default_label is not None and default_label not in label_to_id.values():
+        if default_label is not None and default_label not in label_to_id.keys():
             msg = 'default_label {} is not in label map'.format(default_label)
             raise InvalidArgumentError(msg)
         self.label_to_id = label_to_id
