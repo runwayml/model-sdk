@@ -417,9 +417,6 @@ def test_segmentation_serialize_and_deserialize():
     deserialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).deserialize(serialized_pil)
     assert issubclass(type(deserialized_pil), Image.Image)
 
-    deserialize_np_img = segmentation(label_to_id={"background": 0, "person": 1}).deserialize([[1, 0], [1, 0]])
-    assert issubclass(type(deserialize_np_img), Image.Image)
-
 def test_segmentation_no_label_to_id():
     with pytest.raises(MissingArgumentError):
         segmentation()

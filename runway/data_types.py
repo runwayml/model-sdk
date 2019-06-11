@@ -482,9 +482,14 @@ class segmentation(BaseType):
     """A datatype that represents a pixel-level segmentation of an image.
     Each pixel is annotated with a label id from 0-255, each corresponding to a
     different object class.
-    When used as an input data type, `segmentation` accepts either a two-dimensional array,
-    a 1-channel base64-encoded PNG image, or a 3-channel base64-encoded PNG colormap image.
-    When used as an output data type, it serializes as a 1-channel base64-encoded PNG image.
+    
+    When used as an input data type, `segmentation` accepts a 1-channel base64-encoded PNG image,
+    where each pixel takes the value of one of the ids defined in `pixel_to_id`, or a 3-channel
+    base64-encoded PNG colormap image, where each pixel takes the value of one of the colors 
+    defined in `pixel_to_color`.
+    
+    When used as an output data type, it serializes as a 1-channel base64-encoded PNG image,
+    where each pixel takes the value of one of the ids defined in `pixel_to_id`.
 
     .. code-block:: python
 
@@ -559,21 +564,18 @@ class segmentation(BaseType):
         return Image.fromarray(seg, 'L')
 
     def deserialize(self, value):
-        if type(value) == list:
-            return Image.fromarray(np.array(value).astype(np.uint8), 'L')
-        else:
-            try:
-                image = value[value.find(",")+1:]
-                image = base64.decodestring(image.encode('utf8'))
-                buffer = IO(image)
-                img = Image.open(buffer)
-                if img.mode.startswith('RGB'):
-                    return self.colormap_to_segmentation(img)
-                else:
-                    return img
-            except:
-                msg = 'unable to parse expected base64-encoded image'
-                raise InvalidArgumentError(msg)
+        try:
+            image = value[value.find(",")+1:]
+            image = base64.decodestring(image.encode('utf8'))
+            buffer = IO(image)
+            img = Image.open(buffer)
+            if img.mode.startswith('RGB'):
+                return self.colormap_to_segmentation(img)
+            else:
+                return img
+        except:
+            msg = 'unable to parse expected base64-encoded image'
+            raise InvalidArgumentError(msg)
 
     def serialize(self, value):
         if type(value) is np.ndarray:
