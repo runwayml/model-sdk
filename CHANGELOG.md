@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.0.77
+## v0.1.0
 
 - Add `segmentation` data type.
 
