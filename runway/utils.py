@@ -8,6 +8,7 @@ import functools
 import sys
 import gzip
 import datetime
+import colorcet
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
@@ -119,6 +120,11 @@ def timestamp_millis():
     return int(offset.total_seconds() * 1000)
 
 
+def get_color_palette(name):
+    palette = getattr(colorcet, name)
+    return [[int(c[0]*255), int(c[1]*255), int(c[2]*255)] for c in palette]
+
+  
 def argspec(fn):
     if sys.version_info[0] < 3:
         return inspect.getargspec(fn)

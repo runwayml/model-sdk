@@ -400,3 +400,51 @@ def test_image_serialize_invalid_type():
 
     with pytest.raises(InvalidArgumentError):
         image().serialize('data:image/jpeg;base64,')
+
+# SEGMENTATION ------------------------------------------------------------------------
+def test_segmentation_to_dict():
+    seg = segmentation(label_to_id={"background": 0, "person": 1}, label_to_color={'background': [0, 0, 0]}, width=512, height=512)
+    obj = seg.to_dict()
+    assert obj['type'] == 'segmentation'
+    assert obj['labelToId'] == {"background": 0, "person": 1}
+    assert obj['labelToColor'] == {"background": [0, 0, 0], "person": [140, 59, 255]}
+    assert obj['description'] == None
+
+def test_segmentation_serialize_and_deserialize():
+    directory = os.path.dirname(os.path.realpath(__file__))
+    img = Image.open(os.path.join(directory, 'test_segmentation.png'))
+    serialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).serialize(img)
+    deserialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).deserialize(serialized_pil)
+    assert issubclass(type(deserialized_pil), Image.Image)
+
+def test_segmentation_no_label_to_id():
+    with pytest.raises(MissingArgumentError):
+        segmentation()
+
+def test_segmentation_invalid_label_to_id():
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id={})
+
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id=[])
+
+def test_segmentation_invalid_default_label():
+    with pytest.raises(InvalidArgumentError):
+         segmentation(label_to_id={"background": 0, "person": 1}, default_label='building')
+
+def test_segmentation_serialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id={"background": 0, "person": 1}).serialize(True)
+
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id={"background": 0, "person": 1}).serialize([])
+
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id={"background": 0, "person": 1}).serialize('data:image/jpeg;base64,')
+
+def test_segmentation_deserialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id={"background": 0, "person": 1}).deserialize(True)
+
+    with pytest.raises(InvalidArgumentError):
+        segmentation(label_to_id={"background": 0, "person": 1}).deserialize('data:image/jpeg;base64,')
