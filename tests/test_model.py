@@ -170,6 +170,25 @@ def test_model_setup_no_arguments():
     rw.run(debug=True)
     assert closure['setup_ran'] == True
 
+def test_model_setup_empty_options():
+
+    # use a dict to share state across function scopes. This makes up for the
+    # fact that Python 2.x doesn't have support for the 'nonlocal' keyword.
+    closure = dict(setup_ran = False)
+
+    rw = RunwayModel()
+
+    # Any reason @rw.setup called with no arguments requires the decorated
+    # function NOT to have arguments? This seems a bit like an idiosyncracy to
+    # me. Why not keep the function signature of the wrapped function the
+    # same regardless and simply pass an empty dict in the case of no options?
+    @rw.setup(options={})
+    def setup(opts):
+        closure['setup_ran'] = True
+
+    rw.run(debug=True)
+    assert closure['setup_ran'] == True
+
 def test_model_options_passed_as_arguments_to_run():
 
     # use a dict to share state across function scopes. This makes up for the
