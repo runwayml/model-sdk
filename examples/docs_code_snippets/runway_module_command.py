@@ -1,6 +1,6 @@
 import runway
 from runway.data_types import category, vector, image
-# from your_code import model
+from your_code import model
 
 @runway.setup
 def setup():
