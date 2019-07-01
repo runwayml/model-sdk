@@ -46,7 +46,7 @@ def setup(opts):
     else:
         return little_model()
 
-inputs = { 'noise_vector': vector(length=128) }
+inputs = { 'noise_vector': vector(length=128, description='A random seed.') }
 outputs = { 'image': image(width=512, height=512) }
 
 # The @runway.command() decorator is used to create interfaces to call functions
@@ -54,7 +54,7 @@ outputs = { 'image': image(width=512, height=512) }
 # your model. Each command creates an HTTP route that the Runway app will use
 # to communicate with your model (e.g. POST /generate). Multiple commands
 # can be defined for the same model.
-@runway.command('generate', inputs=inputs, outputs=outputs)
+@runway.command('generate', inputs=inputs, outputs=outputs, description='Generate an image.')
 def generate(model, input_args):
     # Functions wrapped by @runway.command() receive two arguments:
     # 1. Whatever is returned by a function wrapped by @runway.setup(),
