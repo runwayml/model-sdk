@@ -600,7 +600,6 @@ class segmentation(BaseType):
         if self.height: ret['height'] = self.height
         return ret
 
-
 class boolean(BaseType):
     """A basic boolean data type. The only accepted values for this data type are `True`
     and `False`.
