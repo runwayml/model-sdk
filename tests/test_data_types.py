@@ -401,7 +401,7 @@ def test_image_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image().serialize('data:image/jpeg;base64,')
 
-# SEGMENTATION ------------------------------------------------------------------------
+# SEGMENTATION -----------------------------------------------------------------
 def test_segmentation_to_dict():
     seg = segmentation(label_to_id={"background": 0, "person": 1}, label_to_color={'background': [0, 0, 0]}, width=512, height=512)
     obj = seg.to_dict()
@@ -448,3 +448,149 @@ def test_segmentation_deserialize_invalid_type():
 
     with pytest.raises(InvalidArgumentError):
         segmentation(label_to_id={"background": 0, "person": 1}).deserialize('data:image/jpeg;base64,')
+
+# BOOLEAN ----------------------------------------------------------------------
+def test_boolean_to_dict():
+    b = boolean()
+    obj = b.to_dict()
+    assert obj['type'] == 'boolean'
+    assert obj['description'] == None
+    assert obj['default'] == False
+
+    b = boolean(description='This is a boolean used during testing.', default=True)
+    obj = b.to_dict()
+    assert obj['type'] == 'boolean'
+    assert obj['description'] == 'This is a boolean used during testing.'
+    assert obj['default'] == True
+
+def test_boolean_serialization():
+    assert True == boolean().serialize(True)
+    assert False == boolean().serialize(False)
+
+def test_boolean_deserialize():
+    assert True == boolean().deserialize(True)
+    assert False == boolean().deserialize(False)
+
+def test_boolean_serialize_numpy_scalar():
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('True')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('False')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('1')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('0')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize(1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize(0)
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize(1.1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize({})
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize({ 'test': True })
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize([])
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize([1])
+
+def test_boolean_deserialize_invalid_type():
+    with pytest.raises(InvalidArgumentError) as err:
+        boolean().deserialize('True')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize('False')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize('1')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize('0')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize(1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize(0)
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize(1.1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize({})
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize({ 'test': True })
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize([])
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize([1])
+
+# POINT ------------------------------------------------------------------------
+def test_point_to_dict():
+    p = point()
+    obj = p.to_dict()
+    assert obj['type'] == 'point'
+    assert obj['description'] == None
+
+    p = point(description='This is a point used during testing.')
+    obj = p.to_dict()
+    assert obj['type'] == 'point'
+    assert obj['description'] == 'This is a point used during testing.'
+
+def test_point_serialize():
+    assert [0, 1] == point().serialize([0, 1])
+    assert [0.1, 0.2] == point().serialize([0.1, 0.2])
+    assert [0.1, 0.2] == point().serialize(np.array([0.1, 0.2]))
+
+def test_point_deserialize():
+    assert [0, 1] == point().deserialize([0, 1])
+    assert [0.1, 0.2] == point().deserialize([0.1, 0.2])
+
+def test_point_serialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        point().serialize([])
+    with pytest.raises(InvalidArgumentError):
+        point().serialize([1, 2])
+    with pytest.raises(InvalidArgumentError):
+        point().serialize([0.1])
+
+def test_point_deserialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        point().deserialize([])
+    with pytest.raises(InvalidArgumentError):
+        point().deserialize([1, 2])
+    with pytest.raises(InvalidArgumentError):
+        point().deserialize([0.1])
+
+# BOUNDING BOX -----------------------------------------------------------------
+def test_bounding_box_to_dict():
+    b = bounding_box()
+    obj = b.to_dict()
+    assert obj['type'] == 'bounding_box'
+    assert obj['description'] == None
+
+    b = bounding_box(description='This is a bounding box used during testing.')
+    obj = b.to_dict()
+    assert obj['type'] == 'bounding_box'
+    assert obj['description'] == 'This is a bounding box used during testing.'
+
+def test_bounding_box_serialize():
+    assert [0.1, 0.2, 0.3, 0.4] == bounding_box().serialize([0.1, 0.2, 0.3, 0.4])
+    assert [0.1, 0.2, 0.3, 0.4] == bounding_box().serialize(np.array([0.1, 0.2, 0.3, 0.4]))
+
+def test_bounding_box_deserialize():
+    assert [0.1, 0.2, 0.3, 0.4] == bounding_box().deserialize([0.1, 0.2, 0.3, 0.4])
+
+def test_bounding_box_serialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().serialize([])
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().serialize([1, 2, 3, 4])
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().serialize([1, 0, 0, 1])
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().serialize([0, 1, 0, 0])
+
+def test_bounding_box_deserialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().deserialize([])
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().deserialize([1, 2, 3, 4])
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().deserialize([1, 0, 0, 1])
+    with pytest.raises(InvalidArgumentError):
+        bounding_box().deserialize([0, 1, 0, 0])

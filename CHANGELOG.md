@@ -1,8 +1,19 @@
 # Changelog
 
+The Runway Model SDK follows [semantic versioning](https://semver.org/). Be aware that breaking changes may be introduced in minor version updates until a stable 1.0.0 release occurs per [SemVer spec #4](https://semver.org/#spec-item-4).
+
+> 4. Major version zero (0.y.z) is for initial development. Anything may change at any time. The public API should not be considered stable.
+
+Until version 1.0.0, expect that minor version changes may introduce breaking changes. We will take care not to introduce new behavior, features, or breaking changes in patch releases. If you require stability and reproducible behavior you *may* pin to a version or version range of the model SDK like `runway-python>=0.2.0` or `runway-python>=0.2,<0.3`.
+
+## v0.2.0
+
+- Add `boolean` data type.
+
 ## v0.1.0
 
 - Add `segmentation` data type.
+- Begin strict [semantic versioning](https://semver.org/).
 
 ## v0.0.75
 

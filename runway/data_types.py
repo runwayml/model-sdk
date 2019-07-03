@@ -29,12 +29,10 @@ class BaseType(object):
         self.type = data_type
         self.description = description
 
-        # The name property is assigned after contruction through direct
-        # property assignment (e.g. `txt = text(); txt.name = 'some_name' `)
+        # The name property of the data type is assigned to the data type by default.
         # It is the responsibility of the RunwayModel's setup() and command()
-        # functions to assign names to runway.data_types based on the dictionary
-        # keys
-        self.name = None
+        # functions to assign names to runway.data_types based on the dictionary keys.
+        self.name = self.type
 
     def serialize(self, value):
         raise NotImplementedError()
@@ -200,7 +198,7 @@ class image(BaseType):
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
-            raise InvalidArgumentError(self.name or self.type, 'value is not a PIL or numpy image')
+            raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
         buffer = IO()
         im_pil.save(buffer, format='PNG')
         return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
@@ -245,14 +243,14 @@ class vector(BaseType):
     :type sampling_std: float, optional
     :raises MissingArgumentError: A missing argument error if length is not specified
     """
-    def __init__(self, description=None, length=None, default=None, sampling_mean=0, sampling_std=1):
+    def __init__(self, length=None, description=None, default=None, sampling_mean=0, sampling_std=1):
         super(vector, self).__init__('vector', description=description)
         if default is not None:
             if length is None:
                 length = len(default)
             elif len(default) != length:
                 msg = 'default argument does not match expected length'
-                raise InvalidArgumentError(self.name or self.type, msg)
+                raise InvalidArgumentError(self.name, msg)
         if length is None:
             raise MissingArgumentError('length')
         self.length = length
@@ -310,14 +308,14 @@ class category(BaseType):
         if choices is None or len(choices) == 0: raise MissingArgumentError('choices')
         if default is not None and default not in choices:
             msg = 'default argument {} is not in choices list'.format(default)
-            raise InvalidArgumentError(self.name or self.type, msg)
+            raise InvalidArgumentError(self.name, msg)
         self.choices = choices
         self.default = default or self.choices[0]
 
     def deserialize(self, value):
         if value not in self.choices:
             msg = 'category value "%s" does not appear in choices list.' % value
-            raise InvalidArgumentError(self.name or self.type, msg)
+            raise InvalidArgumentError(self.name, msg)
         return value
 
     def serialize(self, value):
@@ -463,9 +461,9 @@ class file(BaseType):
                 return downloaded_path
         else:
             if not os.path.exists(path_or_url):
-                raise InvalidArgumentError(self.name or self.type, 'file path provided does not exist')
+                raise InvalidArgumentError(self.name, 'file path provided does not exist')
             if self.extension and not path_or_url.endswith(self.extension):
-                raise InvalidArgumentError(self.name or self.type, 'file path does not have expected extension')
+                raise InvalidArgumentError(self.name, 'file path does not have expected extension')
             return path_or_url
 
     def serialize(self, value):
@@ -482,12 +480,12 @@ class segmentation(BaseType):
     """A datatype that represents a pixel-level segmentation of an image.
     Each pixel is annotated with a label id from 0-255, each corresponding to a
     different object class.
-    
+
     When used as an input data type, `segmentation` accepts a 1-channel base64-encoded PNG image,
     where each pixel takes the value of one of the ids defined in `pixel_to_id`, or a 3-channel
-    base64-encoded PNG colormap image, where each pixel takes the value of one of the colors 
+    base64-encoded PNG colormap image, where each pixel takes the value of one of the colors
     defined in `pixel_to_color`.
-    
+
     When used as an output data type, it serializes as a 1-channel base64-encoded PNG image,
     where each pixel takes the value of one of the ids defined in `pixel_to_id`.
 
@@ -525,16 +523,16 @@ class segmentation(BaseType):
     :param height: The height of the segmentation image, defaults to None
     :type height: int, optional
       """
-    def __init__(self, description=None, label_to_id=None, label_to_color=None, default_label=None, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
+    def __init__(self, label_to_id=None, description=None, label_to_color=None, default_label=None, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
         super(segmentation, self).__init__('segmentation', description=description)
         if label_to_id is None:
             raise MissingArgumentError('label_to_id')
         if type(label_to_id) is not dict or len(label_to_id.keys()) == 0:
             msg = 'label_to_id argument has invalid type'
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name, msg)
         if default_label is not None and default_label not in label_to_id.keys():
             msg = 'default_label {} is not in label map'.format(default_label)
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name, msg)
         self.label_to_id = label_to_id
         self.label_to_color = self.complete_colors(label_to_color or {})
         self.default_label = default_label or list(self.label_to_id.keys())[0]
@@ -575,7 +573,7 @@ class segmentation(BaseType):
                 return img
         except:
             msg = 'unable to parse expected base64-encoded image'
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name, msg)
 
     def serialize(self, value):
         if type(value) is np.ndarray:
@@ -583,7 +581,7 @@ class segmentation(BaseType):
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
-            raise InvalidArgumentError(self.name or self.type, 'value is not a PIL or numpy image')
+            raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
         buffer = IO()
         im_pil.save(buffer, format='PNG')
         return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
@@ -601,3 +599,134 @@ class segmentation(BaseType):
         if self.width: ret['width'] = self.width
         if self.height: ret['height'] = self.height
         return ret
+
+
+class boolean(BaseType):
+    """A basic boolean data type. The only accepted values for this data type are `True`
+    and `False`.
+
+    .. code-block:: python
+
+        import runway
+        from runway.data_types import boolean
+
+        @runway.setup(options={ "crop": boolean(default=True) })
+        def setup(opts):
+            if opts["crop"]:
+                print("The user has chosen to crop the image.")
+            else:
+                print("The user has chosen not to crop the image.")
+
+    :param description: A description of this variable and how it's used in the model,
+        defaults to None
+    :type description: string, optional
+    :param default: A default value for this boolean variable, defaults to False
+    :type default: bool, optional
+    """
+
+    def __init__(self, description=None, default=False):
+        super(boolean, self).__init__('boolean', description=description)
+        self.default = default
+
+    def validate(self, value):
+        if type(value) != bool:
+            msg = 'value type {} is not a boolean'.format(type(value))
+            raise InvalidArgumentError(self.name, msg)
+
+    def deserialize(self, value):
+        self.validate(value)
+        return value
+
+    def serialize(self, value):
+        self.validate(value)
+        return value
+
+    def to_dict(self):
+        ret = super(boolean, self).to_dict()
+        ret['default'] = self.default
+        return ret
+
+
+class point(BaseType):
+    """A point data type representing a specific location in an image. 
+    It accepts two normalized floating point numbers [x, y] between 0 and 1,
+    where [0, 0] represents the top-left corner and [1, 1] the bottom-right corner of an image.
+    
+    .. code-block:: python
+
+        import runway
+        from runway.data_types import image, point
+
+        @runway.command('detect_gaze', inputs={'image': image()}, outputs={'gaze_location': point()})
+        def detect_gaze(model, inputs):
+            result = model.run(inputs['image'])
+            return {'gaze_location': result}
+
+    :param description: A description of this variable and how it's used in the model,
+        defaults to None
+    :type description: string, optional
+    """
+    def __init__(self, description=None):
+        super(point, self).__init__('point', description=description)
+    
+    def validate(self, value):
+        if len(value) == 2:
+            if not all([0 <= item <= 1 for item in value]):
+                raise InvalidArgumentError(self.name, 'Point coordinates must be between 0 and 1')
+        else:
+            raise InvalidArgumentError(self.name, 'Value must be of length 2')
+        
+    def deserialize(self, value):
+        self.validate(value)
+        return value
+    
+    def serialize(self, value):
+        value = [try_cast_np_scalar(item) for item in value]
+        self.validate(value)
+        return value
+
+
+class bounding_box(BaseType):
+    """An bounding box data type, representing a rectangular region in an image.
+    It accepts four normalized floating point numbers [xmin, ymin, xmax, ymax] between 0 and 1,
+    where [xmin, xmax] is the top-left corner of the rectangle and [xmax, ymax] is the bottom-right corner.
+    
+    .. code-block:: python
+
+        import runway
+        from runway.data_types import image, point
+
+        @runway.command('detect_face', inputs={'image': image()}, outputs={'face_bbox': bounding_box})
+        def detect_faze(model, inputs):
+            result = model.run(inputs['image'])
+            return {'face_bbox': result}
+
+    :param description: A description of this variable and how it's used in the model,
+        defaults to None
+    :type description: string, optional
+    """
+    def __init__(self, description=None):
+        super(bounding_box, self).__init__('bounding_box', description=description)
+    
+    def validate(self, value):
+        if len(value) == 4:
+            if not all([0 <= item <= 1 for item in value]):
+                raise InvalidArgumentError(self.name, 'Bounding box coordinates must be between 0 and 1')
+            left, top, right, bottom = value
+            if left >= right:
+                message = '%s[0] must be less than %s[2]' % (self.name, self.name)
+                raise InvalidArgumentError(self.name, message)
+            if top >= bottom:
+                message = '%s[1] must be less than %s[3]' % (self.name, self.name)
+                raise InvalidArgumentError(self.name, message)
+        else:
+            raise InvalidArgumentError(self.name, 'Value must be of length 4')
+        
+    def deserialize(self, value):
+        self.validate(value)
+        return value
+    
+    def serialize(self, value):
+        value = [try_cast_np_scalar(item) for item in value]
+        self.validate(value)
+        return value
