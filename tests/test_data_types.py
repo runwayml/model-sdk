@@ -391,6 +391,7 @@ def test_image_serialize_and_deserialize():
     deserialize_np_img = image().deserialize(serialize_np_img)
     assert issubclass(type(deserialize_np_img), Image.Image)
 
+
 def test_image_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image().serialize(True)
