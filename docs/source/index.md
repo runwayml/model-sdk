@@ -107,4 +107,5 @@ Continue on to the [Runway YAML reference page](runway_yaml_file.html) to learn 
     Data Types <data_types>
     Exceptions <exceptions>
     UI Components <ui_components>
+    CHANGELOG <https://github.com/runwayml/model-sdk/blob/master/CHANGELOG.md>
 ```
