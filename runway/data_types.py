@@ -646,7 +646,7 @@ class boolean(BaseType):
         return ret
 
 
-class point(BaseType):
+class image_point(BaseType):
     """A point data type representing a specific location in an image. 
     It accepts two normalized floating point numbers [x, y] between 0 and 1,
     where [0, 0] represents the top-left corner and [1, 1] the bottom-right corner of an image.
@@ -656,7 +656,7 @@ class point(BaseType):
         import runway
         from runway.data_types import image, point
 
-        @runway.command('detect_gaze', inputs={'image': image()}, outputs={'gaze_location': point()})
+        @runway.command('detect_gaze', inputs={'image': image()}, outputs={'gaze_location': image_point()})
         def detect_gaze(model, inputs):
             result = model.run(inputs['image'])
             return {'gaze_location': result}
@@ -666,7 +666,7 @@ class point(BaseType):
     :type description: string, optional
     """
     def __init__(self, description=None):
-        super(point, self).__init__('point', description=description)
+        super(image_point, self).__init__('point', description=description)
     
     def validate(self, value):
         if len(value) == 2:

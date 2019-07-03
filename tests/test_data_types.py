@@ -521,40 +521,40 @@ def test_boolean_deserialize_invalid_type():
 
 # POINT ------------------------------------------------------------------------
 def test_point_to_dict():
-    p = point()
+    p = image_point()
     obj = p.to_dict()
     assert obj['type'] == 'point'
     assert obj['description'] == None
 
-    p = point(description='This is a point used during testing.')
+    p = image_point(description='This is a point used during testing.')
     obj = p.to_dict()
     assert obj['type'] == 'point'
     assert obj['description'] == 'This is a point used during testing.'
 
 def test_point_serialize():
-    assert [0, 1] == point().serialize([0, 1])
-    assert [0.1, 0.2] == point().serialize([0.1, 0.2])
-    assert [0.1, 0.2] == point().serialize(np.array([0.1, 0.2]))
+    assert [0, 1] == image_point().serialize([0, 1])
+    assert [0.1, 0.2] == image_point().serialize([0.1, 0.2])
+    assert [0.1, 0.2] == image_point().serialize(np.array([0.1, 0.2]))
 
 def test_point_deserialize():
-    assert [0, 1] == point().deserialize([0, 1])
-    assert [0.1, 0.2] == point().deserialize([0.1, 0.2])
+    assert [0, 1] == image_point().deserialize([0, 1])
+    assert [0.1, 0.2] == image_point().deserialize([0.1, 0.2])
 
 def test_point_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
-        point().serialize([])
+        image_point().serialize([])
     with pytest.raises(InvalidArgumentError):
-        point().serialize([1, 2])
+        image_point().serialize([1, 2])
     with pytest.raises(InvalidArgumentError):
-        point().serialize([0.1])
+        image_point().serialize([0.1])
 
 def test_point_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
-        point().deserialize([])
+        image_point().deserialize([])
     with pytest.raises(InvalidArgumentError):
-        point().deserialize([1, 2])
+        image_point().deserialize([1, 2])
     with pytest.raises(InvalidArgumentError):
-        point().deserialize([0.1])
+        image_point().deserialize([0.1])
 
 # BOUNDING BOX -----------------------------------------------------------------
 def test_bounding_box_to_dict():
