@@ -401,7 +401,7 @@ def test_image_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image().serialize('data:image/jpeg;base64,')
 
-# SEGMENTATION ------------------------------------------------------------------------
+# SEGMENTATION -----------------------------------------------------------------
 def test_segmentation_to_dict():
     seg = segmentation(label_to_id={"background": 0, "person": 1}, label_to_color={'background': [0, 0, 0]}, width=512, height=512)
     obj = seg.to_dict()
@@ -448,3 +448,73 @@ def test_segmentation_deserialize_invalid_type():
 
     with pytest.raises(InvalidArgumentError):
         segmentation(label_to_id={"background": 0, "person": 1}).deserialize('data:image/jpeg;base64,')
+
+# BOOLEAN ----------------------------------------------------------------------
+def test_boolean_to_dict():
+    b = boolean()
+    obj = b.to_dict()
+    assert obj['type'] == 'boolean'
+    assert obj['description'] == None
+    assert obj['default'] == False
+
+    b = boolean(description='This is a boolean used during testing.', default=True)
+    obj = b.to_dict()
+    assert obj['type'] == 'boolean'
+    assert obj['description'] == 'This is a boolean used during testing.'
+    assert obj['default'] == True
+
+def test_boolean_serialization():
+    assert True == boolean().serialize(True)
+    assert False == boolean().serialize(False)
+
+def test_boolean_deserialize():
+    assert True == boolean().serialize(True)
+    assert False == boolean().serialize(False)
+
+def test_boolean_serialize_numpy_scalar():
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('True')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('False')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('1')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize('0')
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize(1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize(0)
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize(1.1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize({})
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize({ 'test': True })
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize([])
+    with pytest.raises(InvalidArgumentError):
+        boolean().serialize([1])
+
+def test_boolean_deserialize_invalid_type():
+    with pytest.raises(InvalidArgumentError) as err:
+        boolean().deserialize('True')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize('False')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize('1')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize('0')
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize(1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize(0)
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize(1.1)
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize({})
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize({ 'test': True })
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize([])
+    with pytest.raises(InvalidArgumentError):
+        boolean().deserialize([1])

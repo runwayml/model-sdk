@@ -482,12 +482,12 @@ class segmentation(BaseType):
     """A datatype that represents a pixel-level segmentation of an image.
     Each pixel is annotated with a label id from 0-255, each corresponding to a
     different object class.
-    
+
     When used as an input data type, `segmentation` accepts a 1-channel base64-encoded PNG image,
     where each pixel takes the value of one of the ids defined in `pixel_to_id`, or a 3-channel
-    base64-encoded PNG colormap image, where each pixel takes the value of one of the colors 
+    base64-encoded PNG colormap image, where each pixel takes the value of one of the colors
     defined in `pixel_to_color`.
-    
+
     When used as an output data type, it serializes as a 1-channel base64-encoded PNG image,
     where each pixel takes the value of one of the ids defined in `pixel_to_id`.
 
@@ -531,10 +531,10 @@ class segmentation(BaseType):
             raise MissingArgumentError('label_to_id')
         if type(label_to_id) is not dict or len(label_to_id.keys()) == 0:
             msg = 'label_to_id argument has invalid type'
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name or self.type, msg)
         if default_label is not None and default_label not in label_to_id.keys():
             msg = 'default_label {} is not in label map'.format(default_label)
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name or self.type, msg)
         self.label_to_id = label_to_id
         self.label_to_color = self.complete_colors(label_to_color or {})
         self.default_label = default_label or list(self.label_to_id.keys())[0]
@@ -575,7 +575,7 @@ class segmentation(BaseType):
                 return img
         except:
             msg = 'unable to parse expected base64-encoded image'
-            raise InvalidArgumentError(msg)
+            raise InvalidArgumentError(self.name or self.type, msg)
 
     def serialize(self, value):
         if type(value) is np.ndarray:
@@ -600,4 +600,49 @@ class segmentation(BaseType):
         if self.max_height: ret['maxHeight'] = self.max_height
         if self.width: ret['width'] = self.width
         if self.height: ret['height'] = self.height
+        return ret
+
+class boolean(BaseType):
+    """A basic boolean data type. The only accepted values for this data type are `True`
+    and `False`.
+
+    .. code-block:: python
+
+        import runway
+        from runway.data_types import boolean
+
+        @runway.setup(options={ "crop": boolean(default=True) })
+        def setup(opts):
+            if opts["crop"]:
+                print("The user has chosen to crop the image.")
+            else:
+                print("The user has chosen not to crop the image.")
+
+    :param description: A description of this variable and how it's used in the model,
+        defaults to None
+    :type description: string, optional
+    :param default: A default value for this boolean variable, defaults to False
+    :type default: bool, optional
+    """
+
+    def __init__(self, description=None, default=False):
+        super(boolean, self).__init__('boolean', description=description)
+        self.default = default
+
+    def validate(self, value):
+        if type(value) != bool:
+            msg = 'value type {} is not a boolean'.format(type(value))
+            raise InvalidArgumentError(self.name or self.type, msg)
+
+    def deserialize(self, value):
+        self.validate(value)
+        return value
+
+    def serialize(self, value):
+        self.validate(value)
+        return value
+
+    def to_dict(self):
+        ret = super(boolean, self).to_dict()
+        ret['default'] = self.default
         return ret
