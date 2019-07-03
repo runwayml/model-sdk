@@ -185,7 +185,11 @@ class RunwayModel(object):
             from runway.data_types import category
             from your_code import model
 
-            options = {"network_size": category(choices=[64, 128, 256, 512], default=256)}
+            # Descriptions are used to document each data type; Their values appear in the app as
+            # tooltips. Writing detailed descriptions for each model option goes a long way towards
+            # helping users learn how to interact with your model. Write descriptions as full sentences.
+            network_size_description = "The size of the network. A larger number will result in better accuracy at the expense of increased latency."
+            options = { "network_size": category(choices=[64, 128, 256, 512], default=256, description=network_size_description) }
             @runway.setup(options=options)
             def setup(opts):
                 print("Setup ran, and the network size is {}".format(opts["network_size"]))
@@ -241,7 +245,7 @@ class RunwayModel(object):
                 return model()
 
             sample_inputs= {
-                "z": vector(length=512),
+                "z": vector(length=512, description="The seed used to generate an output image."),
                 "category": category(choices=["day", "night"])
             }
 
@@ -249,7 +253,15 @@ class RunwayModel(object):
                 "image": image(width=1024, height=1024)
             }
 
-            @runway.command("sample", inputs=sample_inputs, outputs=sample_outputs)
+            # Descriptions are used to document each data type and `@runway.command()`; Their values appear
+            # in the app as tooltips. Writing detailed descriptions for each model option goes a long way
+            # towards helping users learn how to interact with your model. Write descriptions as full
+            # sentences.
+            sample_description = "Generate a new image based on a z-vector and an output style: Day or night."
+            @runway.command("sample",
+                            inputs=sample_inputs,
+                            outputs=sample_outputs,
+                            description=sample_description)
             def sample(model, inputs):
                 # The parameters passed to a function decorated by @runway.command() are:
                 #   1. The return value of a function wrapped by @runway.setup(), usually a model.
@@ -259,6 +271,13 @@ class RunwayModel(object):
                 # `img` can be a PIL or numpy image. It will be encoded as a base64 URI string
                 # automatically by @runway.command().
                 return { "image": img }
+
+        .. note::
+            All ``@runway.command()`` decorators accept a ``description`` keyword argument
+            that can be used to describe what the command does. Descriptions appear as
+            tooltips in the app and help users learn what the command does. It's best
+            practice to write full-sentence descriptions for each of your input variables
+            and commands.
 
         :param name: The name of the command. This name is used to create the
             HTTP route associated with the command
@@ -277,7 +296,7 @@ class RunwayModel(object):
         :param description: A text description of what this command does.
             If this parameter is present its value will be rendered as a tooltip
             in Runway. Defaults to None.
-        :type description: string
+        :type description: string, optional
         :raises Exception: An exception if there isn't at least one key value
             pair for both inputs and outputs dictionaries
         :return: A decorated function
