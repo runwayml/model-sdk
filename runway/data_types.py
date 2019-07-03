@@ -618,7 +618,7 @@ class boolean(BaseType):
             else:
                 print("The user has chosen not to crop the image.")
 
-    :param description: A description of this variable and how its used in the model,
+    :param description: A description of this variable and how it's used in the model,
         defaults to None
     :type description: string, optional
     :param default: A default value for this boolean variable, defaults to False
