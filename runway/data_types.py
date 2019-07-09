@@ -685,7 +685,7 @@ class image_point(BaseType):
         return value
 
 
-class bounding_box(BaseType):
+class image_bounding_box(BaseType):
     """An bounding box data type, representing a rectangular region in an image.
     It accepts four normalized floating point numbers [xmin, ymin, xmax, ymax] between 0 and 1,
     where [xmin, xmax] is the top-left corner of the rectangle and [xmax, ymax] is the bottom-right corner.
@@ -695,7 +695,7 @@ class bounding_box(BaseType):
         import runway
         from runway.data_types import image, point
 
-        @runway.command('detect_face', inputs={'image': image()}, outputs={'face_bbox': bounding_box})
+        @runway.command('detect_face', inputs={'image': image()}, outputs={'face_bbox': image_bounding_box})
         def detect_faze(model, inputs):
             result = model.run(inputs['image'])
             return {'face_bbox': result}
@@ -705,7 +705,7 @@ class bounding_box(BaseType):
     :type description: string, optional
     """
     def __init__(self, description=None):
-        super(bounding_box, self).__init__('bounding_box', description=description)
+        super(image_bounding_box, self).__init__('image_bounding_box', description=description)
     
     def validate(self, value):
         if len(value) == 4:

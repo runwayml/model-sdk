@@ -519,7 +519,7 @@ def test_boolean_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         boolean().deserialize([1])
 
-# POINT ------------------------------------------------------------------------
+# IMAGE POINT ------------------------------------------------------------------------
 def test_point_to_dict():
     p = image_point()
     obj = p.to_dict()
@@ -556,41 +556,41 @@ def test_point_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_point().deserialize([0.1])
 
-# BOUNDING BOX -----------------------------------------------------------------
-def test_bounding_box_to_dict():
-    b = bounding_box()
+# IMAGE BOUNDING BOX -----------------------------------------------------------------
+def test_image_bounding_box_to_dict():
+    b = image_bounding_box()
     obj = b.to_dict()
-    assert obj['type'] == 'bounding_box'
+    assert obj['type'] == 'image_bounding_box'
     assert obj['description'] == None
 
-    b = bounding_box(description='This is a bounding box used during testing.')
+    b = image_bounding_box(description='This is a bounding box used during testing.')
     obj = b.to_dict()
-    assert obj['type'] == 'bounding_box'
+    assert obj['type'] == 'image_bounding_box'
     assert obj['description'] == 'This is a bounding box used during testing.'
 
-def test_bounding_box_serialize():
-    assert [0.1, 0.2, 0.3, 0.4] == bounding_box().serialize([0.1, 0.2, 0.3, 0.4])
-    assert [0.1, 0.2, 0.3, 0.4] == bounding_box().serialize(np.array([0.1, 0.2, 0.3, 0.4]))
+def test_image_bounding_box_serialize():
+    assert [0.1, 0.2, 0.3, 0.4] == image_bounding_box().serialize([0.1, 0.2, 0.3, 0.4])
+    assert [0.1, 0.2, 0.3, 0.4] == image_bounding_box().serialize(np.array([0.1, 0.2, 0.3, 0.4]))
 
-def test_bounding_box_deserialize():
-    assert [0.1, 0.2, 0.3, 0.4] == bounding_box().deserialize([0.1, 0.2, 0.3, 0.4])
+def test_image_bounding_box_deserialize():
+    assert [0.1, 0.2, 0.3, 0.4] == image_bounding_box().deserialize([0.1, 0.2, 0.3, 0.4])
 
-def test_bounding_box_serialize_invalid_type():
+def test_image_bounding_box_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
-        bounding_box().serialize([])
+        image_bounding_box().serialize([])
     with pytest.raises(InvalidArgumentError):
-        bounding_box().serialize([1, 2, 3, 4])
+        image_bounding_box().serialize([1, 2, 3, 4])
     with pytest.raises(InvalidArgumentError):
-        bounding_box().serialize([1, 0, 0, 1])
+        image_bounding_box().serialize([1, 0, 0, 1])
     with pytest.raises(InvalidArgumentError):
-        bounding_box().serialize([0, 1, 0, 0])
+        image_bounding_box().serialize([0, 1, 0, 0])
 
-def test_bounding_box_deserialize_invalid_type():
+def test_image_bounding_box_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
-        bounding_box().deserialize([])
+        image_bounding_box().deserialize([])
     with pytest.raises(InvalidArgumentError):
-        bounding_box().deserialize([1, 2, 3, 4])
+        image_bounding_box().deserialize([1, 2, 3, 4])
     with pytest.raises(InvalidArgumentError):
-        bounding_box().deserialize([1, 0, 0, 1])
+        image_bounding_box().deserialize([1, 0, 0, 1])
     with pytest.raises(InvalidArgumentError):
-        bounding_box().deserialize([0, 1, 0, 0])
+        image_bounding_box().deserialize([0, 1, 0, 0])
