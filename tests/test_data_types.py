@@ -135,7 +135,6 @@ def test_number_to_dict():
     assert obj['default'] == default
     assert obj['min'] == 10
     assert obj['max'] == 100
-    assert obj['step'] == 1
     assert obj['description'] == description
 
 def test_number_serialization():
