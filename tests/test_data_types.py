@@ -129,13 +129,13 @@ def test_text_deserialize():
 def test_number_to_dict():
     default = 42
     description = 'A description about this variable.'
-    num = number(default=default, description=description, min=10, max=100)
+    num = number(default=default, description=description, min=10, max=100, step=10)
     obj = num.to_dict()
     assert obj['type'] == 'number'
     assert obj['default'] == default
     assert obj['min'] == 10
     assert obj['max'] == 100
-    assert obj['step'] == 1
+    assert obj['step'] == 10
     assert obj['description'] == description
 
 def test_number_serialization():

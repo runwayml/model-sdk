@@ -345,17 +345,17 @@ class number(BaseType):
     :type description: string, optional
     :param default: A default value for this number variable, defaults to 0
     :type default: float, optional
-    :param min: The minimum allowed value of this number type, defaults to 0
+    :param min: The minimum allowed value of this number type
     :type min: float, optional
-    :param max: The maximum allowed value of this number type, defaults to 1
+    :param max: The maximum allowed value of this number type
     :type max: float, optional
     :param step: The step size of this number type. This argument define the minimum change \
         of value associated with this number type. E.g., a step size of `0.1` would allow this data \
-        type to take on the values ``[0.0, 0.1, 0.2, ..., 1.0]``. Defaults to 1.
+        type to take on the values ``[0.0, 0.1, 0.2, ..., 1.0]``.
     :type step: float, optional
     """
 
-    def __init__(self, description=None, default=0, min=0, max=1, step=1):
+    def __init__(self, description=None, default=0, step=None, min=None, max=None):
         super(number, self).__init__('number', description=description)
         self.default = default
         self.min = min
@@ -371,9 +371,12 @@ class number(BaseType):
     def to_dict(self):
         ret = super(number, self).to_dict()
         ret['default'] = self.default
-        ret['min'] = self.min
-        ret['max'] = self.max
-        ret['step'] = self.step
+        if self.min is not None:
+            ret['min'] = self.min
+        if self.max is not None:
+            ret['max'] = self.max
+        if self.step is not None:
+            ret['step'] = self.step
         return ret
 
 
