@@ -666,7 +666,7 @@ class image_point(BaseType):
     :type description: string, optional
     """
     def __init__(self, description=None):
-        super(image_point, self).__init__('point', description=description)
+        super(image_point, self).__init__('image_point', description=description)
     
     def validate(self, value):
         if len(value) == 2:

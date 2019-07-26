@@ -520,27 +520,27 @@ def test_boolean_deserialize_invalid_type():
         boolean().deserialize([1])
 
 # IMAGE POINT ------------------------------------------------------------------------
-def test_point_to_dict():
+def test_image_point_to_dict():
     p = image_point()
     obj = p.to_dict()
-    assert obj['type'] == 'point'
+    assert obj['type'] == 'image_point'
     assert obj['description'] == None
 
     p = image_point(description='This is a point used during testing.')
     obj = p.to_dict()
-    assert obj['type'] == 'point'
+    assert obj['type'] == 'image_point'
     assert obj['description'] == 'This is a point used during testing.'
 
-def test_point_serialize():
+def test_image_point_serialize():
     assert [0, 1] == image_point().serialize([0, 1])
     assert [0.1, 0.2] == image_point().serialize([0.1, 0.2])
     assert [0.1, 0.2] == image_point().serialize(np.array([0.1, 0.2]))
 
-def test_point_deserialize():
+def test_image_point_deserialize():
     assert [0, 1] == image_point().deserialize([0, 1])
     assert [0.1, 0.2] == image_point().deserialize([0.1, 0.2])
 
-def test_point_serialize_invalid_type():
+def test_image_point_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_point().serialize([])
     with pytest.raises(InvalidArgumentError):
@@ -548,7 +548,7 @@ def test_point_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_point().serialize([0.1])
 
-def test_point_deserialize_invalid_type():
+def test_image_point_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_point().deserialize([])
     with pytest.raises(InvalidArgumentError):
