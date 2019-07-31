@@ -490,7 +490,7 @@ class segmentation(BaseType):
     defined in `label_to_color`.
 
     When used as an output data type, it serializes as a 3-channel base64-encoded PNG image,
-    where each pixel takes the value of one of the color defined in `label_to_color`.
+    where each pixel takes the value of one of the colors defined in `label_to_color`.
 
     .. code-block:: python
 
