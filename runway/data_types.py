@@ -485,12 +485,12 @@ class segmentation(BaseType):
     different object class.
 
     When used as an input data type, `segmentation` accepts a 1-channel base64-encoded PNG image,
-    where each pixel takes the value of one of the ids defined in `pixel_to_id`, or a 3-channel
+    where each pixel takes the value of one of the ids defined in `label_to_id`, or a 3-channel
     base64-encoded PNG colormap image, where each pixel takes the value of one of the colors
-    defined in `pixel_to_color`.
+    defined in `label_to_color`.
 
-    When used as an output data type, it serializes as a 1-channel base64-encoded PNG image,
-    where each pixel takes the value of one of the ids defined in `pixel_to_id`.
+    When used as an output data type, it serializes as a 3-channel base64-encoded PNG image,
+    where each pixel takes the value of one of the color defined in `label_to_color`.
 
     .. code-block:: python
 
@@ -564,6 +564,14 @@ class segmentation(BaseType):
             seg[(cmap==color).all(axis=2)] = label_id
         return Image.fromarray(seg, 'L')
 
+    def segmentation_to_colormap(self, img):
+        seg = np.array(img)
+        cmap = np.zeros((seg.shape[0], seg.shape[1], 3), dtype=np.uint8)
+        for label, id in self.label_to_id.items():
+            label_color = self.label_to_color[label]
+            cmap[(seg==id)] = label_color
+        return Image.fromarray(cmap, 'RGB')
+
     def deserialize(self, value):
         try:
             image = value[value.find(",")+1:]
@@ -585,6 +593,8 @@ class segmentation(BaseType):
             im_pil = value
         else:
             raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
+        if im_pil.mode == 'L':
+            im_pil = self.segmentation_to_colormap(im_pil)
         buffer = IO()
         im_pil.save(buffer, format='PNG')
         return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
