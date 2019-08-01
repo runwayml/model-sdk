@@ -729,3 +729,63 @@ class image_bounding_box(BaseType):
         value = [try_cast_np_scalar(item) for item in value]
         self.validate(value)
         return value
+
+
+class image_landmarks(BaseType):
+    """An image landmarks data type, representing a fixed-length array of (x, y) coordinates, such as facial landmarks.
+    
+    .. code-block:: python
+
+        import runway
+        from runway.data_types import image, image_landmarks
+
+        @runway.command('detect_face_keypoints', inputs={'image': image()}, outputs={'keypoints': image_landmarks(68)})
+        def detect_face_keypoints(model, inputs):
+            points = model.run(inputs['image'])
+            return {'keypoints': result}
+
+    :param length: The number of landmarks associated with this type
+    :type length: int
+    :param labels: Labels associated with each coordinate of the type
+    :type labels: list, optional
+    :param description: A description of this variable and how it's used in the model,
+        defaults to None
+    :type description: string, optional
+    """
+    def __init__(self, length, description=None, labels=None):
+        super(image_landmarks, self).__init__('image_landmarks', description=description)
+        self.length = length
+        if length <= 0:
+            msg = 'landmarks length must be greater than 0'
+            raise InvalidArgumentError(self.name, msg)
+        if labels and len(labels) != length:
+            msg = 'length of labels list does not match provided length'
+            raise InvalidArgumentError(self.name, msg)
+        self.labels = labels
+
+    def validate(self, landmarks):
+        if len(landmarks) != self.length:
+            msg = 'Expected array of length {}, instead got array of length {}'.format(self.length, len(landmarks))
+            raise InvalidArgumentError(self.name, msg)
+        for index, point in enumerate(landmarks):
+            if len(point) != 2:
+                msg = 'Expected point at index {} to have 2 elements, instead got {} elements'.format(index, len(point))
+                raise InvalidArgumentError(self.name, msg)
+            if not all(([0 <= coord <= 1 for coord in point])):
+                msg = 'Point coordinates must be between 0 and 1'
+                raise InvalidArgumentError(self.name, msg)
+
+    def deserialize(self, value):
+        self.validate(value)
+        return value
+
+    def serialize(self, value):
+        value = [[try_cast_np_scalar(pt[0]), try_cast_np_scalar(pt[1])] for pt in value]
+        self.validate(value)
+        return value
+
+    def to_dict(self):
+        ret = super(image_landmarks, self).to_dict()
+        ret['length'] = self.length
+        if self.labels: ret['labels'] = self.labels
+        return ret
