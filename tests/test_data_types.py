@@ -631,6 +631,8 @@ def test_image_landmarks_serialize_invalid_type():
         image_landmarks(1).serialize([[500, 500]])
     with pytest.raises(InvalidArgumentError):
         image_landmarks(2).serialize([[0.5, 0.5]])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(2).serialize([[0.5, 0.5, 0.5]])
 
 def test_image_landmarks_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
@@ -639,3 +641,5 @@ def test_image_landmarks_deserialize_invalid_type():
         image_landmarks(1).deserialize([[500, 500]])
     with pytest.raises(InvalidArgumentError):
         image_landmarks(2).deserialize([[0.5, 0.5]])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(2).deserialize([[0.5, 0.5, 0.5]])
