@@ -742,7 +742,7 @@ class image_landmarks(BaseType):
         @runway.command('detect_face_keypoints', inputs={'image': image()}, outputs={'keypoints': image_landmarks(68)})
         def detect_face_keypoints(model, inputs):
             points = model.run(inputs['image'])
-            return {'keypoints': result}
+            return {'keypoints': points}
 
     :param length: The number of landmarks associated with this type
     :type length: int
