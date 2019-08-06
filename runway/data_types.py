@@ -780,8 +780,8 @@ class image_landmarks(BaseType):
         return value
 
     def serialize(self, value):
-        value = [[try_cast_np_scalar(pt[0]), try_cast_np_scalar(pt[1])] for pt in value]
         self.validate(value)
+        value = [[try_cast_np_scalar(pt[0]), try_cast_np_scalar(pt[1])] for pt in value]
         return value
 
     def to_dict(self):
