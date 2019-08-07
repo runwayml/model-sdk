@@ -52,10 +52,7 @@ def test_model_setup_and_command():
                 'type': 'number',
                 'name': 'output',
                 'description': 'An output number.',
-                'default': 0,
-                'min': 0,
-                'max': 1,
-                'step': 1
+                'default': 0
             }]
         }]
     }
@@ -334,7 +331,6 @@ def test_meta(capsys):
                         'min': 10,
                         'default': 0,
                         'max': 100,
-                        'step': 1,
                         'type': 'number',
                         'description': None
                     },

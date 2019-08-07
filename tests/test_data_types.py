@@ -129,13 +129,13 @@ def test_text_deserialize():
 def test_number_to_dict():
     default = 42
     description = 'A description about this variable.'
-    num = number(default=default, description=description, min=10, max=100)
+    num = number(default=default, description=description, min=10, max=100, step=10)
     obj = num.to_dict()
     assert obj['type'] == 'number'
     assert obj['default'] == default
     assert obj['min'] == 10
     assert obj['max'] == 100
-    assert obj['step'] == 1
+    assert obj['step'] == 10
     assert obj['description'] == description
 
 def test_number_serialization():
@@ -410,9 +410,16 @@ def test_segmentation_to_dict():
     assert obj['labelToColor'] == {"background": [0, 0, 0], "person": [140, 59, 255]}
     assert obj['description'] == None
 
-def test_segmentation_serialize_and_deserialize():
+def test_segmentation_serialize_and_deserialize_colormap():
     directory = os.path.dirname(os.path.realpath(__file__))
-    img = Image.open(os.path.join(directory, 'test_segmentation.png'))
+    img = Image.open(os.path.join(directory, 'test_segmentation_colormap.png'))
+    serialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).serialize(img)
+    deserialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).deserialize(serialized_pil)
+    assert issubclass(type(deserialized_pil), Image.Image)
+
+def test_segmentation_serialize_and_deserialize_labelmap():
+    directory = os.path.dirname(os.path.realpath(__file__))
+    img = Image.open(os.path.join(directory, 'test_segmentation_labelmap.png'))
     serialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).serialize(img)
     deserialized_pil = segmentation(label_to_id={"background": 0, "person": 1}).deserialize(serialized_pil)
     assert issubclass(type(deserialized_pil), Image.Image)
