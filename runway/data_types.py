@@ -733,34 +733,93 @@ class image_bounding_box(BaseType):
 
 class image_landmarks(BaseType):
     """An image landmarks data type, representing a fixed-length array of (x, y) coordinates, such as facial landmarks.
-    
+    Each (x, y) coordinate pair in the array should be expressed as normalized image points with values between 0 and 1, inclusive.
+
     .. code-block:: python
 
         import runway
         from runway.data_types import image, image_landmarks
 
-        @runway.command('detect_face_keypoints', inputs={'image': image()}, outputs={'keypoints': image_landmarks(68)})
-        def detect_face_keypoints(model, inputs):
-            points = model.run(inputs['image'])
-            return {'keypoints': points}
+        landmark_names = [
+            'nose',
+            'leftEye',
+            'rightEye',
+            'leftEar',
+            'rightEar',
+            'leftShoulder',
+            'rightShoulder',
+            'leftElbow',
+            'rightElbow',
+            'leftWrist',
+            'rightWrist',
+            'leftHip',
+            'rightHip',
+            'leftKnee',
+            'rightKnee',
+            'leftAnkle',
+            'rightAnkle'
+        ]
 
-    :param length: The number of landmarks associated with this type
+        landmark_connections = [
+            ['leftHip', 'leftShoulder'],
+            ['leftElbow', 'leftShoulder'],
+            ['leftElbow', 'leftWrist'],
+            ['leftHip', 'leftKnee'],
+            ['leftKnee', 'leftAnkle'],
+            ['rightHip', 'rightShoulder'],
+            ['rightElbow', 'rightShoulder'],
+            ['rightElbow', 'rightWrist'],
+            ['rightHip', 'rightKnee'],
+            ['rightKnee', 'rightAnkle'],
+            ['leftShoulder', 'rightShoulder'],
+            ['leftHip', 'rightHip']
+        ]
+
+        command_outputs = {
+            'keypoints': image_landmarks(17, labels=landmark_names, connections=landmark_connections)
+        }
+
+        @runway.command('detect_pose', inputs={'image': image()}, outputs=command_outputs)
+        def detect_pose(model, inputs):
+            pose = model.run(inputs['image'])
+            return {'keypoints': pose}
+
+    :param length: The number of landmarks associated with this type.
     :type length: int
-    :param labels: Labels associated with each coordinate of the type
+    :param labels: Labels associated with each landmark.
     :type labels: list, optional
+    :param connections: A list of pairs of logically connected landmarks identified by name, e.g. [['left_hip', 'left_shoulder], ['right_hip', 'right_shoulder']]. 
+        The names included in connections should correspond to the names provided by the labels property. 
+        This property is only used for visualization purposes.
+    :type connections: list, optional
     :param description: A description of this variable and how it's used in the model,
         defaults to None
     :type description: string, optional
     """
-    def __init__(self, length, description=None, labels=None):
+    def __init__(self, length, description=None, labels=None, connections=None):
         super(image_landmarks, self).__init__('image_landmarks', description=description)
-        self.length = length
         if length <= 0:
             msg = 'landmarks length must be greater than 0'
             raise InvalidArgumentError(self.name, msg)
         if labels and len(labels) != length:
             msg = 'length of labels list does not match provided length'
             raise InvalidArgumentError(self.name, msg)
+        if labels is None and connections is not None:
+            msg = 'connections cannot be defined if labels is undefined'
+            raise InvalidArgumentError(self.name, msg)
+        if connections is not None:
+            for index, connection in enumerate(connections):
+                if len(connection) != 2:
+                    msg = 'Expected connection at index {} to have 2 elements, instead got {} elements'.format(index, len(connection))
+                    raise InvalidArgumentError(self.name, msg)
+                if connection[0] not in labels:
+                    msg = '{} is not a valid landmark label'.format(connection[0])
+                    raise InvalidArgumentError(self.name, msg)
+                if connection[1] not in labels:
+                    msg = '{} is not a valid landmark label'.format(connection[1])
+                    raise InvalidArgumentError(self.name, msg)
+        self.length = length
+        self.connections = connections
         self.labels = labels
 
     def validate(self, landmarks):
@@ -788,4 +847,5 @@ class image_landmarks(BaseType):
         ret = super(image_landmarks, self).to_dict()
         ret['length'] = self.length
         if self.labels: ret['labels'] = self.labels
+        if self.connections: ret['connections'] = self.connections
         return ret
