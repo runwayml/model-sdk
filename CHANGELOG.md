@@ -10,6 +10,10 @@ Until version 1.0.0, expect that minor version changes may introduce breaking ch
 
 - Add `image_landmarks` data type.
 
+## v.0.3.2
+
+- Make segmentation serialize as a 3-channel color map when used as an output field, instead of a 1-channel label map.
+
 ## v.0.3.1
 
 - Remove default values for `min`, `max`, and `step` parameters of `number` data type.

@@ -92,7 +92,7 @@ build_steps:
     - pip install -r requirements.txt
 ```
 
-Continue on to the [Runway YAML reference page](runway_yaml_file.html) to learn more about the possible configuration values supported by the `runway.yml` file.
+Continue on to the [Runway YAML reference page](runway_yaml_file.html) to learn more about the possible configuration values supported by the `runway.yml` file, or hop over to the [Example Models](example_models.html) page to check out the source code for some of the models that have already been ported to Runway.
 
 <!-- http://www.sphinx-doc.org/en/1.5/markup/toctree.html -->
 ```eval_rst
@@ -107,5 +107,6 @@ Continue on to the [Runway YAML reference page](runway_yaml_file.html) to learn 
     Data Types <data_types>
     Exceptions <exceptions>
     UI Components <ui_components>
+    Example Models <example_models>
     CHANGELOG <https://github.com/runwayml/model-sdk/blob/master/CHANGELOG.md>
 ```

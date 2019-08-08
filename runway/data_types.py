@@ -345,17 +345,17 @@ class number(BaseType):
     :type description: string, optional
     :param default: A default value for this number variable, defaults to 0
     :type default: float, optional
-    :param min: The minimum allowed value of this number type, defaults to 0
+    :param min: The minimum allowed value of this number type
     :type min: float, optional
-    :param max: The maximum allowed value of this number type, defaults to 1
+    :param max: The maximum allowed value of this number type
     :type max: float, optional
     :param step: The step size of this number type. This argument define the minimum change \
         of value associated with this number type. E.g., a step size of `0.1` would allow this data \
-        type to take on the values ``[0.0, 0.1, 0.2, ..., 1.0]``. Defaults to 1.
+        type to take on the values ``[0.0, 0.1, 0.2, ..., 1.0]``.
     :type step: float, optional
     """
 
-    def __init__(self, description=None, default=0, min=0, max=1, step=1):
+    def __init__(self, description=None, default=0, step=None, min=None, max=None):
         super(number, self).__init__('number', description=description)
         self.default = default
         self.min = min
@@ -371,9 +371,12 @@ class number(BaseType):
     def to_dict(self):
         ret = super(number, self).to_dict()
         ret['default'] = self.default
-        ret['min'] = self.min
-        ret['max'] = self.max
-        ret['step'] = self.step
+        if self.min is not None:
+            ret['min'] = self.min
+        if self.max is not None:
+            ret['max'] = self.max
+        if self.step is not None:
+            ret['step'] = self.step
         return ret
 
 
@@ -482,12 +485,12 @@ class segmentation(BaseType):
     different object class.
 
     When used as an input data type, `segmentation` accepts a 1-channel base64-encoded PNG image,
-    where each pixel takes the value of one of the ids defined in `pixel_to_id`, or a 3-channel
+    where each pixel takes the value of one of the ids defined in `label_to_id`, or a 3-channel
     base64-encoded PNG colormap image, where each pixel takes the value of one of the colors
-    defined in `pixel_to_color`.
+    defined in `label_to_color`.
 
-    When used as an output data type, it serializes as a 1-channel base64-encoded PNG image,
-    where each pixel takes the value of one of the ids defined in `pixel_to_id`.
+    When used as an output data type, it serializes as a 3-channel base64-encoded PNG image,
+    where each pixel takes the value of one of the colors defined in `label_to_color`.
 
     .. code-block:: python
 
@@ -561,6 +564,14 @@ class segmentation(BaseType):
             seg[(cmap==color).all(axis=2)] = label_id
         return Image.fromarray(seg, 'L')
 
+    def segmentation_to_colormap(self, img):
+        seg = np.array(img)
+        cmap = np.zeros((seg.shape[0], seg.shape[1], 3), dtype=np.uint8)
+        for label, id in self.label_to_id.items():
+            label_color = self.label_to_color[label]
+            cmap[(seg==id)] = label_color
+        return Image.fromarray(cmap, 'RGB')
+
     def deserialize(self, value):
         try:
             image = value[value.find(",")+1:]
@@ -582,6 +593,8 @@ class segmentation(BaseType):
             im_pil = value
         else:
             raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
+        if im_pil.mode == 'L':
+            im_pil = self.segmentation_to_colormap(im_pil)
         buffer = IO()
         im_pil.save(buffer, format='PNG')
         return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
