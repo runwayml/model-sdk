@@ -630,11 +630,11 @@ def test_image_landmarks_invalid_connections():
     with pytest.raises(InvalidArgumentError):
         l = image_landmarks(2, connections=[['a', 'b']])
     with pytest.raises(InvalidArgumentError):
-        l = image_landmarks(2, labels=['a', 'b', 'c'], connections=[['a', 'b', 'c']])
+        l = image_landmarks(3, labels=['a', 'b', 'c'], connections=[['a', 'b', 'c']])
     with pytest.raises(InvalidArgumentError):
-        l = image_landmarks(2, labels=['a', 'b', 'c'], connections=[['a', 'd']])
+        l = image_landmarks(3, labels=['a', 'b', 'c'], connections=[['a', 'd']])
     with pytest.raises(InvalidArgumentError):
-        l = image_landmarks(2, labels=['a', 'b', 'c'], connections=[['d', 'a']])
+        l = image_landmarks(3, labels=['a', 'b', 'c'], connections=[['d', 'a']])
 
 def test_image_landmarks_serialize():
     assert [[0, 0], [1, 1]] == image_landmarks(2).serialize([[0, 0], [1, 1]])
