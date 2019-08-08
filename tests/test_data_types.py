@@ -601,3 +601,70 @@ def test_image_bounding_box_deserialize_invalid_type():
         image_bounding_box().deserialize([1, 0, 0, 1])
     with pytest.raises(InvalidArgumentError):
         image_bounding_box().deserialize([0, 1, 0, 0])
+
+# IMAGE LANDMARKS --------------------------------------------------------------------
+def test_image_landmarks_to_dict():
+    l = image_landmarks(10)
+    obj = l.to_dict()
+    assert obj['type'] == 'image_landmarks'
+    assert obj['description'] == None
+    assert obj['length'] == 10
+
+    l = image_landmarks(3, labels=['a', 'b', 'c'])
+    obj = l.to_dict()
+    assert obj['type'] == 'image_landmarks'
+    assert obj['description'] == None
+    assert obj['length'] == 3
+    assert obj['labels'] == ['a', 'b', 'c']
+
+    l = image_landmarks(3, labels=['a', 'b', 'c'], connections=[['a', 'b']])
+    obj = l.to_dict()
+    assert obj['type'] == 'image_landmarks'
+    assert obj['description'] == None
+    assert obj['length'] == 3
+    assert obj['labels'] == ['a', 'b', 'c']
+    assert obj['connections'] == [['a', 'b']]
+
+def test_image_landmarks_invalid_length():
+    with pytest.raises(InvalidArgumentError):
+        l = image_landmarks(length=0)
+    
+def test_image_landmarks_invalid_labels():
+    with pytest.raises(InvalidArgumentError):
+        l = image_landmarks(2, labels=['a'])
+
+def test_image_landmarks_invalid_connections():
+    with pytest.raises(InvalidArgumentError):
+        l = image_landmarks(2, connections=[['a', 'b']])
+    with pytest.raises(InvalidArgumentError):
+        l = image_landmarks(3, labels=['a', 'b', 'c'], connections=[['a', 'b', 'c']])
+    with pytest.raises(InvalidArgumentError):
+        l = image_landmarks(3, labels=['a', 'b', 'c'], connections=[['a', 'd']])
+    with pytest.raises(InvalidArgumentError):
+        l = image_landmarks(3, labels=['a', 'b', 'c'], connections=[['d', 'a']])
+
+def test_image_landmarks_serialize():
+    assert [[0, 0], [1, 1]] == image_landmarks(2).serialize([[0, 0], [1, 1]])
+
+def test_image_landmarks_deserialize():
+    assert [[0, 0], [1, 1]] == image_landmarks(2).deserialize([[0, 0], [1, 1]])
+
+def test_image_landmarks_serialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(0).serialize([])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(1).serialize([[500, 500]])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(2).serialize([[0.5, 0.5]])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(2).serialize([[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]])
+
+def test_image_landmarks_deserialize_invalid_type():
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(0).deserialize([])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(1).deserialize([[500, 500]])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(2).deserialize([[0.5, 0.5]])
+    with pytest.raises(InvalidArgumentError):
+        image_landmarks(2).deserialize([[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]])
