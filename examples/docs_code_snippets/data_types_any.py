@@ -12,4 +12,4 @@ def setup(opts):
 
 runway.run()
 
-# curl -H "content-type: application/json" -d '{"configuration": "# A list of tasty fruits\nfruits:\n  - Apple\n  - Orange\n  - Strawberry\n  - Mango"}' http://localhost:8000/setup
+# curl -H "content-type: application/json" -d '{"configuration": "# A list of tasty fruits\nfruits:\n  - Apple\n  - Orange\n  - Strawberry\n  - Mango"}' http://localhost:9000/setup

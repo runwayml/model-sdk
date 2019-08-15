@@ -14,4 +14,4 @@ def random_sample(result_of_setup, args):
 
 runway.run()
 
-# curl -H "content-type: application/json" -d '{"length": 128}' http://localhost:8000/random_sample
+# curl -H "content-type: application/json" -d '{"length": 128}' http://localhost:9000/random_sample

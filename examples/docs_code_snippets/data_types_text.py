@@ -7,4 +7,4 @@ def setup(opts):
 
 runway.run()
 
-# curl -H "content-type: application/json" -d '{"flavor": "chocolate"}' http://localhost:8000/setup
+# curl -H "content-type: application/json" -d '{"flavor": "chocolate"}' http://localhost:9000/setup

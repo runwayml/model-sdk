@@ -16,7 +16,7 @@ from my_image_generation_model import big_model, little_model
 #     pass
 
 # The setup() function runs once when the model is initialized, and will run
-# again for each well formed HTTP POST request to http://localhost:8000/setup.
+# again for each well formed HTTP POST request to http://localhost:9000/setup.
 @runway.setup(options={'model_size': category(choices=['big', 'little'])})
 def setup(opts):
     if opts['model_size'] == 'big':
@@ -47,4 +47,4 @@ def generate(model, input_args):
 # creates an HTTP server that listens for and fulfills remote requests that
 # trigger commands.
 if __name__ == '__main__':
-    runway.run(host="0.0.0.0", port=8000, model_options={ 'big' })
+    runway.run(host="0.0.0.0", port=9000, model_options={ 'big' })

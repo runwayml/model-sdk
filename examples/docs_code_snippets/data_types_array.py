@@ -8,4 +8,4 @@ def setup(opts):
 
 runway.run()
 
-# curl -H "content-type: application/json" -d '{"seed_sentences": ["the", "sly", "fox", "is", "sly"]}' http://localhost:8000/setup
+# curl -H "content-type: application/json" -d '{"seed_sentences": ["the", "sly", "fox", "is", "sly"]}' http://localhost:9000/setup

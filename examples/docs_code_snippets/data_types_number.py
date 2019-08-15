@@ -7,4 +7,4 @@ def setup(opts):
 
 runway.run()
 
-# curl -H "content-type: application/json" -d '{"number_of_samples": 5}' http://localhost:8000/setup
+# curl -H "content-type: application/json" -d '{"number_of_samples": 5}' http://localhost:9000/setup

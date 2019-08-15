@@ -363,9 +363,9 @@ class RunwayModel(object):
                 raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         self.running_status = 'RUNNING'
 
-    def run(self, host='0.0.0.0', port=8000, model_options={}, debug=False, meta=False, no_serve=False):
+    def run(self, host='0.0.0.0', port=9000, model_options={}, debug=False, meta=False, no_serve=False):
         """Run the model and start listening for HTTP requests on the network.
-        By default, the server will run on port ``8000`` and listen on all
+        By default, the server will run on port ``9000`` and listen on all
         network interfaces (``0.0.0.0``).
 
         .. code-block:: python
@@ -389,7 +389,7 @@ class RunwayModel(object):
             ``"0.0.0.0"`` (all interfaces). This value will be overwritten by the
             ``RW_HOST`` environment variable if it is present.
         :type host: string, optional
-        :param port: The port to bind the HTTP server to, defaults to ``8000``.
+        :param port: The port to bind the HTTP server to, defaults to ``9000``.
             This value will be overwritten by the ``RW_PORT`` environment
             variable if it is present.
         :type port: int, optional

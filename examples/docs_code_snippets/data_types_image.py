@@ -11,4 +11,4 @@ def style_transfer(result_of_setup, args):
     return { "image": img }
 
 runway.run()
-# curl -H "content-type: application/json" -d '{ "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgA..." }' http://localhost:8000/batch_process
+# curl -H "content-type: application/json" -d '{ "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgA..." }' http://localhost:9000/batch_process

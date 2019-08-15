@@ -10,4 +10,4 @@ def setup(opts):
 
 runway.run()
 
-# curl -H "content-type: application/json" -d '{"pixel_order": "bgr"}' http://localhost:8000/setup
+# curl -H "content-type: application/json" -d '{"pixel_order": "bgr"}' http://localhost:9000/setup

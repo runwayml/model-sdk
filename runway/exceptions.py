@@ -111,7 +111,7 @@ class InferenceError(RunwayError):
 class UnknownCommandError(RunwayError):
     """
     An error thrown if an HTTP request is made to an endpoint that doesn't
-    exist. E.g. ``http://localhost:8000/nothing_here``.
+    exist. E.g. ``http://localhost:9000/nothing_here``.
 
     :ivar message: An error message, set to "Unknown command:
         {COMMAND_NAME}"

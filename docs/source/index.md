@@ -38,7 +38,7 @@ from runway.data_types import category, vector, image
 from your_image_generation_model import big_model, little_model
 
 # The setup() function runs once when the model is initialized, and will run
-# again for each well formed HTTP POST request to http://localhost:8000/setup.
+# again for each well formed HTTP POST request to http://localhost:9000/setup.
 @runway.setup(options={'model_size': category(choices=['big', 'little'])})
 def setup(opts):
     if opts['model_size'] == 'big':
@@ -69,7 +69,7 @@ def generate(model, input_args):
 # creates an HTTP server that listens for and fulfills remote requests that
 # trigger commands.
 if __name__ == '__main__':
-    runway.run(host='0.0.0.0', port=8000, model_options={ 'model_size': 'big' })
+    runway.run(host='0.0.0.0', port=9000, model_options={ 'model_size': 'big' })
 ```
 
 If you are looking to port your own model, we recommend starting from our [Model Template](https://github.com/runwayml/model-template) repository hosted on GitHub. This repository contains a basic model that you can use as boilerplate instead of having to start from scratch.

@@ -10,4 +10,4 @@ def batch_process(result_of_setup, args):
 
 runway.run()
 
-# curl -H "content-type: application/json" -d '{"directory": "test"}' http://localhost:8000/batch_process
+# curl -H "content-type: application/json" -d '{"directory": "test"}' http://localhost:9000/batch_process
