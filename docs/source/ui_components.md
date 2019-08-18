@@ -115,18 +115,18 @@ Only a limited set of all [Data Types](data_types.html) generate UI components a
 
 ```eval_rst
 .. csv-table::
-   :header: "Data Type", "Input", "Output", "Notes"
+   :header: "Data Type", "Setup Option", "Command Input", "Command Output", "Notes"
 
-   "``image``",        "**Yes**", "**Yes**", "The ``image`` type is also used to process video sequences."
-   "``text``",         "**Yes**", "**Yes**", ""
-   "``boolean``",      "**Yes**", "No\*",    "Boolean data types used as input appear on the model options UI on the right side of the workspace view."
-   "``category``",     "**Yes**", "No\*",    "Category data types used as input appear on the model options UI on the right side of the workspace view. If you are looking to output a category, instead output the category value as a string using the ``text`` type for now."
-   "``number``",       "**Yes**", "No",      "Number data types used as input appear on the model options UI on the right side of the workspace view. If you are looking to output a number, instead output a number as a string using the ``text`` type for now."
-   "``vector``",       "**Yes**", "No",      "The vector input uses a grid of images. More data types will be supported soon. See StyleGAN for an example."
-   "``segmentation``", "**Yes**", "**Yes**",    "Use a regular image as output for now."
-   "``file``\^",       "**Yes**", "**Yes**",  "^ The file input should not be used as an input or output type for ``@runway.command()``s. Instead the file UI component will be rendered as an optional input source for all types."
-   "``array``",        "No\*",      "No\*",  "If you are looking to output an array of strings, join them using a ``, `` and return a ``text`` type for now."
-   "``any``",          "No",      "No",      "The any data type is meant to be extensible and used primarily via the Network."
+   "``image``",        "No", "**Yes**", "**Yes**", "The ``image`` type is also used to process video sequences."
+   "``text``",         "No", "**Yes**", "**Yes**", ""
+   "``boolean``",      "**Yes**", "**Yes**", "No\*",    "Boolean data types used as input appear on the model options UI on the right side of the workspace view."
+   "``category``",     "**Yes**", "**Yes**", "No\*",    "Category data types used as input appear on the model options UI on the right side of the workspace view. If you are looking to output a category, instead output the category value as a string using the ``text`` type for now."
+   "``number``",       "**Yes**", "**Yes**", "No",      "Number data types used as input appear on the model options UI on the right side of the workspace view. If you are looking to output a number, instead output a number as a string using the ``text`` type for now."
+   "``vector``",       "No", "**Yes**", "No",      "The vector input uses a grid of images. More data types will be supported soon. See StyleGAN for an example."
+   "``segmentation``", "No", "**Yes**", "**Yes**",    "Use a regular image as output for now."
+   "``file``\^",       "**Yes**", "No", "No",  "^ The file input should not be used as an input or output type for ``@runway.command()``s. Instead the file UI component will be rendered as an optional input source for all types."
+   "``array``",        "No", "No\*",      "No\*",  "If you are looking to output an array of strings, join them using a ``, `` and return a ``text`` type for now."
+   "``any``",          "No", "No",      "No",      "The any data type is meant to be extensible and used primarily via the Network."
 ```
 
 ### Examples
