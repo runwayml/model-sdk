@@ -287,6 +287,14 @@ def test_file_to_dict_directory():
     assert obj['isDirectory'] == True
     assert obj['description'] == description
 
+def test_directory_to_dict():
+    description = 'A description about this variable.'
+    f = directory(description=description)
+    obj = f.to_dict()
+    assert obj['type'] == 'file'
+    assert obj['isDirectory'] == True
+    assert obj['description'] == description
+
 def test_file_serialization_base():
     f = file()
     assert 'file.txt' == f.serialize('file.txt')
