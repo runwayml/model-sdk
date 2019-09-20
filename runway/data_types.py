@@ -432,14 +432,12 @@ class file(BaseType):
     .. code-block:: python
 
         import runway
-        from runway.data_types import file, category
+        from runway.data_types import file
 
-        inputs = {"directory": file(is_directory=True)}
-        outputs = {"result": category(choices=["success", "failure"])}
-        @runway.command("batch_process", inputs=inputs, outputs=outputs)
-        def batch_process(result_of_setup, args):
-            result = do_something_with(args["directory"])
-            return { "result": "success" if result else "failure" }
+        @runway.setup(options={"checkpoint": file(extension=".h5"))
+        def setup(opts):
+            model = initialize_model_from_checkpoint(args["checkpoint"])
+            return model
 
     :param description: A description of this variable and how its used in the model,
         defaults to None
@@ -478,6 +476,28 @@ class file(BaseType):
         if self.extension: ret['extension'] = self.extension
         return ret
 
+
+class directory(file):
+    """A data type that represents a file directory. It can be a local \
+        path on disk or a remote tarball loaded over HTTP. \
+
+    .. code-block:: python
+
+        import runway
+        from runway.data_types import directory
+
+        @runway.setup(options={"checkpoint_dir": directory})
+        def setup(opts):
+            model = initialize_model_from_checkpoint_folder(args["checkpoint_dir"])
+            return model
+
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
+    """
+
+    def __init__(self, description=None):
+        super(directory, self).__init__(description=description, is_directory=True)
 
 class segmentation(BaseType):
     """A datatype that represents a pixel-level segmentation of an image.
