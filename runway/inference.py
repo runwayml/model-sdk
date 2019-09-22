@@ -17,7 +17,7 @@ def run_inference(fn, model, inputs, queue):
                 output = next(g)
                 send_output(output)
         except StopIteration as err:
-            if hasattr(err.value) and err.value is not None:
+            if hasattr(err, 'value') and err.value is not None:
                 send_output(err.value)
         except Exception as err:
             error = InferenceError(repr(err))
