@@ -17,7 +17,7 @@ def run_inference(fn, model, inputs, queue):
                 output = next(g)
                 send_output(output)
         except StopIteration as err:
-            if err.value:
+            if hasattr(err.value) and err.value is not None:
                 send_output(err.value)
         except Exception as err:
             error = InferenceError(repr(err))
@@ -62,4 +62,4 @@ class InferenceJob(object):
             status = 'FAILED' if 'error' in self.data else 'SUCCEEDED'
             return dict(status=status, **self.data)
         else:
-            return dict(status=status, error='An unknown error occurred during inference.')
+            return dict(status='FAILED', error='An unknown error occurred during inference.')

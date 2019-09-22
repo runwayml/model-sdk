@@ -129,7 +129,7 @@ class RunwayModel(object):
                             while True:
                                 output_data = next(g)
                         except StopIteration as err:
-                            if err.value:
+                            if hasattr(err.value) and err.value is not None:
                                 send_output(err.value)
                     else:
                         output_data = command_fn(self.model, deserialized_inputs)
