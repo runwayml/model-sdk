@@ -8,12 +8,13 @@ sys.path.insert(0, '.')
 import os
 import json
 import pytest
+import time
 from time import sleep
 from runway.model import RunwayModel
 from runway.__version__ import __version__ as model_sdk_version
 from runway.data_types import category, text, number, array, image, vector, file, any as any_type
 from runway.exceptions import *
-from utils import get_test_client, get_manifest
+from utils import *
 from deepdiff import DeepDiff
 from flask import abort
 
@@ -671,6 +672,145 @@ def test_millis_since_last_command_resets_each_command():
         assert millis_since_last_command > first_time
         client.post('test_command', json={ 'input': 5 })
         assert get_manifest(client)['millisSinceLastCommand'] < millis_since_last_command
+
+def test_inference_coroutine():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        time.sleep(1)
+        yield 'hello world'
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    response = client.post('/test_command', json={'input': 5})
+    assert response.json['output'] == 'hello world'
+
+
+def test_inference_async():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(0.5)
+        return 'hello world'
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    response = client.post('/test_command/submit', json={'input': 5})
+
+    assert 'id' in response.json
+    job_id = response.json['id']
+
+    response = client.get('/test_command/jobs/' + job_id)
+    assert response.json['status'] == 'RUNNING'
+
+    time.sleep(1)
+
+    response = client.get('/test_command/jobs/' + job_id)
+    assert response.json['status'] == 'SUCCEEDED'
+    assert response.json['data']['output'] == 'hello world'
+
+def test_inference_async_coroutine():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        time.sleep(1)
+        yield 'hello world'
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    response = client.post('/test_command/submit', json={'input': 5})
+
+    assert 'id' in response.json
+    job_id = response.json['id']
+
+    time.sleep(0.5)
+
+    response = client.get('/test_command/jobs/' + job_id)
+    assert response.json['status'] == 'RUNNING'
+    assert response.json['data']['output'] == 'hello'
+
+    time.sleep(1)
+
+    response = client.get('/test_command/jobs/' + job_id)
+    assert response.json['status'] == 'SUCCEEDED'
+    assert response.json['data']['output'] == 'hello world'
+
+def test_inference_async_failure():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        raise Exception
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    response = client.post('/test_command/submit', json={'input': 5})
+
+    assert 'id' in response.json
+    job_id = response.json['id']
+
+    time.sleep(1)
+
+    response = client.get('/test_command/jobs/' + job_id)
+    assert response.json['status'] == 'FAILED'
+    assert 'error' in response.json
+
+def test_inference_async_coroutine_failure():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        raise Exception
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    response = client.post('/test_command/submit', json={'input': 5})
+
+    assert 'id' in response.json
+    job_id = response.json['id']
+
+    time.sleep(1)
+
+    response = client.get('/test_command/jobs/' + job_id)
+    assert response.json['status'] == 'FAILED'
+    assert 'error' in response.json
+
+def test_inference_async_cancel():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(1)
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    response = client.post('/test_command/submit', json={'input': 5})
+
+    assert 'id' in response.json
+    job_id = response.json['id']
+
+    response = client.delete('/test_command/jobs/' + job_id)
+
+    response = client.get('/test_command/jobs/' + job_id)
+    assert response.json['status'] == 'CANCELLED'
 
 def test_gpu_in_manifest_no_env_set():
 

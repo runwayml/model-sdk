@@ -12,8 +12,10 @@ from gevent.pywsgi import WSGIServer
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
+from .inference import InferenceJob
 from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
-        validate_post_request_body_is_json, get_json_or_none_if_invalid, argspec
+        validate_post_request_body_is_json, get_json_or_none_if_invalid, argspec, \
+        deserialize_data, serialize_data, generate_uuid
 from .__version__ import __version__ as model_sdk_version
 
 class RunwayModel(object):
@@ -28,6 +30,7 @@ class RunwayModel(object):
         self.setup_fn = None
         self.commands = {}
         self.command_fns = {}
+        self.jobs = {}
         self.model = None
         self.running_status = 'STARTING'
         self.app = Flask(__name__)
@@ -117,36 +120,72 @@ class RunwayModel(object):
                 inputs = self.commands[command_name]['inputs']
                 outputs = self.commands[command_name]['outputs']
                 input_dict = get_json_or_none_if_invalid(request)
-                deserialized_inputs = {}
-                for inp in inputs:
-                    name = inp.name
-                    if name in input_dict:
-                        value = input_dict[name]
-                    elif hasattr(inp, 'default'):
-                        value = inp.default
-                    else:
-                        raise MissingInputError(name)
-                    deserialized_inputs[name] = inp.deserialize(value)
+                deserialized_inputs = deserialize_data(input_dict, inputs)
+                self.millis_last_command = timestamp_millis()
                 try:
-                    self.millis_last_command = timestamp_millis()
-                    results = command_fn(self.model, deserialized_inputs)
-                    if type(results) != dict:
-                        name = outputs[0].name
-                        value = results
-                        results = {}
-                        results[name] = value
+                    if inspect.isgeneratorfunction(command_fn):
+                        g = command_fn(self.model, deserialized_inputs)
+                        try:
+                            while True:
+                                output_data = next(g)
+                        except StopIteration as err:
+                            if err.value:
+                                send_output(err.value)
+                    else:
+                        output_data = command_fn(self.model, deserialized_inputs)
                 except Exception as err:
                     raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
-
-                serialized_outputs = {}
-                for out in outputs:
-                    name = out.to_dict()['name']
-                    serialized_outputs[name] = out.serialize(results[name])
-                return jsonify(serialized_outputs)
-
+                return jsonify(serialize_data(output_data, outputs))
             except RunwayError as err:
                 err.print_exception()
                 return jsonify(err.to_response()), err.code
+        
+        @self.app.route('/<command_name>/submit', methods=['POST'])
+        @validate_post_request_body_is_json
+        def command_submit(command_name):
+            try:
+                try:
+                    command_fn = self.command_fns[command_name]
+                except KeyError:
+                    raise UnknownCommandError(command_name)
+                inputs = self.commands[command_name]['inputs']
+                outputs = self.commands[command_name]['outputs']
+                input_dict = get_json_or_none_if_invalid(request)
+                deserialized_inputs = deserialize_data(input_dict, inputs)
+                self.millis_last_command = timestamp_millis()
+                job_id = generate_uuid()
+                self.jobs[job_id] = InferenceJob(command_fn, self.model, input_dict)
+                self.jobs[job_id].start()
+                return jsonify(dict(id=job_id))
+            except RunwayError as err:
+                err.print_exception()
+                return jsonify(err.to_response()), err.code
+
+        @self.app.route('/<command_name>/jobs/<job_id>', methods=['GET'])
+        def command_status(command_name, job_id):
+            try:
+                outputs = self.commands[command_name]['outputs']
+            except KeyError:
+                raise UnknownCommandError(command_name)
+            if job_id not in self.jobs:
+                return jsonify(dict(error='Inference job not found')), 404
+            job = self.jobs[job_id]
+            response = job.get()
+            if 'data' in response:
+                response['data'] = serialize_data(response['data'], outputs)
+            return jsonify(response), 200
+            
+        @self.app.route('/<command_name>/jobs/<job_id>', methods=['DELETE'])
+        def command_cancel(command_name, job_id):
+            try:
+                outputs = self.commands[command_name]['outputs']
+            except KeyError:
+                raise UnknownCommandError(command_name)
+            if job_id not in self.jobs:
+                return jsonify(dict(error='Inference job not found')), 404
+            job = self.jobs[job_id]
+            job.cancel()
+            return jsonify(dict(success=True)), 200
 
         @self.app.route('/<command_name>', methods=['GET'])
         def usage_route(command_name):
