@@ -135,6 +135,8 @@ class RunwayModel(object):
                         output_data = command_fn(self.model, deserialized_inputs)
                 except Exception as err:
                     raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
+                if type(output_data) == tuple:
+                    output_data, _ = output_data
                 return jsonify(serialize_data(output_data, outputs))
             except RunwayError as err:
                 err.print_exception()
