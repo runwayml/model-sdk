@@ -154,7 +154,7 @@ class RunwayModel(object):
                 deserialized_inputs = deserialize_data(input_dict, inputs)
                 self.millis_last_command = timestamp_millis()
                 job_id = generate_uuid()
-                self.jobs[job_id] = InferenceJob(command_fn, self.model, input_dict)
+                self.jobs[job_id] = InferenceJob(command_fn, self.model, deserialized_inputs)
                 self.jobs[job_id].start()
                 return jsonify(dict(id=job_id))
             except RunwayError as err:
@@ -538,3 +538,5 @@ class RunwayModel(object):
                     http_server.serve_forever()
                 except KeyboardInterrupt:
                     print('Stopping server...')
+                    for job in self.jobs.values():
+                        job.cancel()
