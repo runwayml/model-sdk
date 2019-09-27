@@ -1,6 +1,6 @@
 # Runway Model SDK
 
-[![Runway Slack](https://img.shields.io/badge/Slack-runwayml.slack.com-33b279.svg)](https://runwayml.com/joinslack)
+<a href="https://runwayml.com/joinslack"><img src="https://img.shields.io/badge/slack-runwayml.slack.com-33b279.svg"></a>
 
 These documents serve as a reference for the [Runway](https://runwayml.com) Model SDK. With a few lines of code, you can port existing ML models to the Runway platform so they can be used and shared by others.
 
