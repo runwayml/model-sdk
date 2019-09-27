@@ -8,7 +8,7 @@
 [![CircleCI branch](https://img.shields.io/circleci/project/github/runwayml/model-sdk/master.svg)](https://circleci.com/gh/runwayml/model-sdk/tree/master)
 [![docs](https://readthedocs.org/projects/runway-model-sdk/badge/?version=latest&style=flat)](https://sdk.runwayml.com)
 [![codecov](https://codecov.io/gh/runwayml/model-sdk/branch/master/graph/badge.svg)](https://codecov.io/gh/runwayml/model-sdk)
-[![Runway Slack](https://img.shields.io/badge/slack-runwayml.slack.com-33b279.svg)](https://runwayml.slack.com/)
+<a href="https://runwayml.com/joinslack"><img src="https://img.shields.io/badge/slack-runwayml.slack.com-33b279.svg"></a>
 
 The Runway Model SDK allows you to port new and existing machine learning models to the Runway platform. With a few lines of code, you can modify your Python model to be used and shared by others on [Runway](https://runwayml.com).
 
