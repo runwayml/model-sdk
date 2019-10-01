@@ -702,10 +702,7 @@ class image_point(BaseType):
         super(image_point, self).__init__('image_point', description=description)
     
     def validate(self, value):
-        if len(value) == 2:
-            if not all([0 <= item <= 1 for item in value]):
-                raise InvalidArgumentError(self.name, 'Point coordinates must be between 0 and 1')
-        else:
+        if len(value) != 2:
             raise InvalidArgumentError(self.name, 'Value must be of length 2')
         
     def deserialize(self, value):
@@ -742,8 +739,6 @@ class image_bounding_box(BaseType):
     
     def validate(self, value):
         if len(value) == 4:
-            if not all([0 <= item <= 1 for item in value]):
-                raise InvalidArgumentError(self.name, 'Bounding box coordinates must be between 0 and 1')
             left, top, right, bottom = value
             if left >= right:
                 message = '%s[0] must be less than %s[2]' % (self.name, self.name)
@@ -862,9 +857,6 @@ class image_landmarks(BaseType):
         for index, point in enumerate(landmarks):
             if len(point) != 2:
                 msg = 'Expected point at index {} to have 2 elements, instead got {} elements'.format(index, len(point))
-                raise InvalidArgumentError(self.name, msg)
-            if not all(([0 <= coord <= 1 for coord in point])):
-                msg = 'Point coordinates must be between 0 and 1'
                 raise InvalidArgumentError(self.name, msg)
 
     def deserialize(self, value):
