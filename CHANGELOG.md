@@ -6,6 +6,11 @@ The Runway Model SDK follows [semantic versioning](https://semver.org/). Be awar
 
 Until version 1.0.0, expect that minor version changes may introduce breaking changes. We will take care not to introduce new behavior, features, or breaking changes in patch releases. If you require stability and reproducible behavior you *may* pin to a version or version range of the model SDK like `runway-python>=0.2.0` or `runway-python>=0.2,<0.3`.
 
+## v.0.4.2
+
+- Add `runway.directory` as an alias to `runway.file(is_directory=True)`.
+- Remove range restrictions from `image_point`, `image_landmarks`, and `image_bounding_box` data types.
+
 ## v.0.4.1
 
 - Set default port to 9000.
