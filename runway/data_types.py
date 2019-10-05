@@ -186,22 +186,27 @@ class image(BaseType):
         max_height=None,
         width=None,
         height=None,
-        default_output_format='JPEG'
+        default_output_format=None
     ):
         super(image, self).__init__('image', description=description)
-        if default_output_format not in ['JPEG', 'PNG']:
-            msg = 'default_output_format needs to be JPEG or PNG'
-            raise InvalidArgumentError(self.name, msg)
+        self.channels = channels
         if channels not in [1, 3, 4]:
             raise InvalidArgumentError(self.name or self.type, 'channels value needs to be 1, 3, or 4')
-        self.channels = channels
+        if default_output_format and default_output_format not in ['JPEG', 'PNG']:
+            msg = 'default_output_format needs to be JPEG or PNG'
+            raise InvalidArgumentError(self.name, msg)
+        if default_output_format:
+            self.default_output_format = default_output_format
+        elif self.channels == 3:
+            self.default_output_format = 'JPEG'
+        else:
+            self.default_output_format = 'PNG'
         self.min_width = min_width
         self.min_height = min_height
         self.max_width = max_width
         self.max_height = max_height
         self.width = width
         self.height = height
-        self.default_output_format = default_output_format
 
     def get_pil_mode(self):
         if self.channels == 1: return 'L'

@@ -417,6 +417,12 @@ def test_image_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image(channels=2)
 
+
+def test_image_default_output_format():
+    assert image(default_output_format='PNG').default_output_format == 'PNG'
+    assert image(channels=3).default_output_format == 'JPEG'
+    assert image(channels=1).default_output_format == 'PNG'
+
 # SEGMENTATION -----------------------------------------------------------------
 def test_segmentation_to_dict():
     seg = segmentation(label_to_id={"background": 0, "person": 1}, label_to_color={'background': [0, 0, 0]}, width=512, height=512)
