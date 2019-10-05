@@ -387,6 +387,7 @@ def test_image_to_dict():
     assert obj['minHeight'] == 128
     assert obj['maxHeight'] == 512
     assert obj['description'] == None
+    assert obj['defaultOutputFormat'] == 'JPEG'
 
 def test_image_serialize_and_deserialize():
     directory = os.path.dirname(os.path.realpath(__file__))
@@ -408,6 +409,9 @@ def test_image_serialize_invalid_type():
 
     with pytest.raises(InvalidArgumentError):
         image().serialize('data:image/jpeg;base64,')
+
+    with pytest.raises(InvalidArgumentError):
+        image(default_output_format='TXT')
 
 # SEGMENTATION -----------------------------------------------------------------
 def test_segmentation_to_dict():

@@ -176,8 +176,22 @@ class image(BaseType):
     :param height: The height of the image, defaults to None
     :type height: int, optional
     """
-    def __init__(self, description=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
+    def __init__(
+        self,
+        description=None,
+        channels=3,
+        min_width=None,
+        min_height=None,
+        max_width=None,
+        max_height=None,
+        width=None,
+        height=None,
+        default_output_format='JPEG'
+    ):
         super(image, self).__init__('image', description=description)
+        if default_output_format not in ['JPEG', 'PNG']:
+            msg = 'default_output_format needs to be JPEG or PNG'
+            raise InvalidArgumentError(self.name, msg)
         self.channels = channels
         self.min_width = min_width
         self.min_height = min_height
@@ -185,6 +199,7 @@ class image(BaseType):
         self.max_height = max_height
         self.width = width
         self.height = height
+        self.default_output_format = default_output_format
 
     def deserialize(self, value):
         image = value[value.find(",")+1:]
@@ -200,8 +215,9 @@ class image(BaseType):
         else:
             raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
         buffer = IO()
-        im_pil.save(buffer, format='PNG')
-        return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
+        im_pil.save(buffer, format=self.default_output_format)
+        body = base64.b64encode(buffer.getvalue()).decode('utf8')
+        return 'data:image/{format};base64,{body}'.format(format=self.default_output_format.lower(), body=body)
 
     def to_dict(self):
         ret = super(image, self).to_dict()
@@ -212,6 +228,7 @@ class image(BaseType):
         if self.max_height: ret['maxHeight'] = self.max_height
         if self.width: ret['width'] = self.width
         if self.height: ret['height'] = self.height
+        ret['defaultOutputFormat'] = self.default_output_format
         return ret
 
 
