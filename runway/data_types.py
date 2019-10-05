@@ -192,6 +192,8 @@ class image(BaseType):
         if default_output_format not in ['JPEG', 'PNG']:
             msg = 'default_output_format needs to be JPEG or PNG'
             raise InvalidArgumentError(self.name, msg)
+        if channels not in [1, 3, 4]:
+            raise InvalidArgumentError(self.name or self.type, 'channels value needs to be 1, 3, or 4')
         self.channels = channels
         self.min_width = min_width
         self.min_height = min_height
@@ -201,20 +203,33 @@ class image(BaseType):
         self.height = height
         self.default_output_format = default_output_format
 
+    def get_pil_mode(self):
+        if self.channels == 1: return 'L'
+        elif self.channels == 3: return 'RGB'
+        elif self.channels == 4: return 'RGBA'
+
     def deserialize(self, value):
         image = value[value.find(",")+1:]
         image = base64.decodestring(image.encode('utf8'))
         buffer = IO(image)
-        return Image.open(buffer)
+        deserialized_image = Image.open(buffer)
+        if deserialized_image.mode != self.get_pil_mode():
+            try:
+                deserialized_image = deserialized_image.convert(self.get_pil_mode())
+            except:
+                raise InvalidArgumentError(self.name or self.type, 'unsupported image type')
+        return deserialized_image
 
     def serialize(self, value):
         if type(value) is np.ndarray:
-            im_pil = Image.fromarray(value)
+            im_pil = Image.fromarray(value.astype(np.uint8), self.get_pil_mode())
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
             raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
         buffer = IO()
+        if im_pil.mode != self.get_pil_mode():
+            im_pil = im_pil.convert(self.get_pil_mode())
         im_pil.save(buffer, format=self.default_output_format)
         body = base64.b64encode(buffer.getvalue()).decode('utf8')
         return 'data:image/{format};base64,{body}'.format(format=self.default_output_format.lower(), body=body)
