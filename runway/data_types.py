@@ -219,15 +219,12 @@ class image(BaseType):
         buffer = IO(image)
         deserialized_image = Image.open(buffer)
         if deserialized_image.mode != self.get_pil_mode():
-            try:
-                deserialized_image = deserialized_image.convert(self.get_pil_mode())
-            except:
-                raise InvalidArgumentError(self.name or self.type, 'unsupported image type')
+            deserialized_image = deserialized_image.convert(self.get_pil_mode())
         return deserialized_image
 
     def serialize(self, value):
         if type(value) is np.ndarray:
-            im_pil = Image.fromarray(value.astype(np.uint8), self.get_pil_mode())
+            im_pil = Image.fromarray(value.astype(np.uint8))
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:

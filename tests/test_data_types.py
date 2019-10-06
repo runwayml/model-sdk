@@ -5,6 +5,11 @@ sys.path.insert(0, '..')
 sys.path.insert(0, '.')
 
 import os
+if sys.version_info[0] < 3:
+    from cStringIO import StringIO as IO
+else:
+    from io import BytesIO as IO
+import base64
 import pytest
 import numpy as np
 from PIL import Image
@@ -400,6 +405,16 @@ def test_image_serialize_and_deserialize():
     deserialize_np_img = image().deserialize(serialize_np_img)
     assert issubclass(type(deserialize_np_img), Image.Image)
 
+    serialize_np_img = image(channels=1).serialize(np.asarray(img))
+    img = serialize_np_img[serialize_np_img.find(",")+1:]
+    img = base64.decodestring(img.encode('utf8'))
+    buffer = IO(img)
+    deserialized_image = Image.open(buffer)
+    assert(deserialized_image.mode == 'L')
+
+    deserialize_np_img = image(channels=4).deserialize(serialize_np_img)
+    assert(deserialize_np_img.mode == 'RGBA')
+    assert(np.array(deserialize_np_img).shape[2] == 4)
 
 def test_image_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
@@ -421,6 +436,7 @@ def test_image_serialize_invalid_type():
 def test_image_default_output_format():
     assert image(default_output_format='PNG').default_output_format == 'PNG'
     assert image(channels=3).default_output_format == 'JPEG'
+    assert image(channels=4).default_output_format == 'PNG'
     assert image(channels=1).default_output_format == 'PNG'
 
 # SEGMENTATION -----------------------------------------------------------------
