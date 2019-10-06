@@ -9,6 +9,7 @@ Until version 1.0.0, expect that minor version changes may introduce breaking ch
 ## v.0.4.3
 
 - Add `default_output_format` option in `runway.image` data type.
+- Convert `runway.image` input to the specified number of channels.
 
 ## v.0.4.2
 
