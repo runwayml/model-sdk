@@ -2,6 +2,7 @@ from multiprocessing import Process, Queue
 import inspect
 import sys
 from .exceptions import InferenceError
+from .utils import timestamp_millis
 
 class InferenceJob(object):
     def __init__(self, command_fn, model, inputs):
@@ -24,6 +25,7 @@ class InferenceJob(object):
             to_send = {'data': output}
             if progress is not None:
                 to_send['progress'] = progress
+            to_send['lastUpdated'] = timestamp_millis()
             self.queue.put(to_send)
 
         def send_error(error):

@@ -5,10 +5,13 @@ import datetime
 import traceback
 import inspect
 import json
+import gevent
 from six import reraise
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_sockets import Sockets
 from gevent.pywsgi import WSGIServer
+from geventwebsocket.handler import WebSocketHandler
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
@@ -34,6 +37,7 @@ class RunwayModel(object):
         self.model = None
         self.running_status = 'STARTING'
         self.app = Flask(__name__)
+        self.sockets = Sockets(self.app)
         # Support utf-8 in application/json requests and responses.
         # We wrap this in a try/except block because, for whatever reason,
         # `make docs` throws a TypeError that keys are unassignable to
@@ -142,52 +146,40 @@ class RunwayModel(object):
                 err.print_exception()
                 return jsonify(err.to_response()), err.code
         
-        @self.app.route('/<command_name>/submit', methods=['POST'])
-        @validate_post_request_body_is_json
-        def command_submit(command_name):
-            try:
+        @self.sockets.route('/')
+        def inference_socket(ws):
+            while not ws.closed:
                 try:
-                    command_fn = self.command_fns[command_name]
-                except KeyError:
-                    raise UnknownCommandError(command_name)
-                inputs = self.commands[command_name]['inputs']
-                outputs = self.commands[command_name]['outputs']
-                input_dict = get_json_or_none_if_invalid(request)
-                deserialized_inputs = deserialize_data(input_dict, inputs)
-                self.millis_last_command = timestamp_millis()
-                job_id = generate_uuid()
-                self.jobs[job_id] = InferenceJob(command_fn, self.model, deserialized_inputs)
-                self.jobs[job_id].start()
-                return jsonify(dict(id=job_id))
-            except RunwayError as err:
-                err.print_exception()
-                return jsonify(err.to_response()), err.code
-
-        @self.app.route('/<command_name>/jobs/<job_id>', methods=['GET'])
-        def command_status(command_name, job_id):
-            try:
-                outputs = self.commands[command_name]['outputs']
-            except KeyError:
-                raise UnknownCommandError(command_name)
-            if job_id not in self.jobs:
-                return jsonify(dict(error='Inference job not found')), 404
-            job = self.jobs[job_id]
-            response = job.get()
-            if 'data' in response:
-                response['data'] = serialize_data(response['data'], outputs)
-            return jsonify(response), 200
-            
-        @self.app.route('/<command_name>/jobs/<job_id>', methods=['DELETE'])
-        def command_cancel(command_name, job_id):
-            try:
-                outputs = self.commands[command_name]['outputs']
-            except KeyError:
-                raise UnknownCommandError(command_name)
-            if job_id not in self.jobs:
-                return jsonify(dict(error='Inference job not found')), 404
-            job = self.jobs[job_id]
-            job.cancel()
-            return jsonify(dict(success=True)), 200
+                    payload = ws.receive()
+                    payload = json.loads(payload)
+                    command_name = payload['command']
+                    input_dict = payload['inputData']
+                    try:
+                        command_fn = self.command_fns[command_name]
+                    except KeyError:
+                        raise UnknownCommandError(command_name)
+                    inputs = self.commands[command_name]['inputs']
+                    outputs = self.commands[command_name]['outputs']
+                    deserialized_inputs = deserialize_data(input_dict, inputs)
+                    self.millis_last_command = timestamp_millis()
+                    job_id = generate_uuid()
+                    job = InferenceJob(command_fn, self.model, deserialized_inputs)
+                    job.start()
+                    last_updated = None
+                    while job.get()['status'] == 'RUNNING':
+                        response = job.get()
+                        if 'data' in response and response['lastUpdated'] != last_updated:
+                            ws.send(json.dumps(response))
+                            last_updated = response['lastUpdated']
+                        gevent.sleep(1)
+                    response = job.get()
+                    if 'data' in response:
+                        response['data'] = serialize_data(response['data'], outputs)
+                    ws.send(json.dumps(response))
+                except RunwayError as err:
+                    ws.send(json.dumps(err.to_response()))
+                except:
+                    ws.send(json.dumps({'error': 'An unknown error occurred'}))
 
         @self.app.route('/<command_name>', methods=['GET'])
         def usage_route(command_name):
@@ -532,13 +524,10 @@ class RunwayModel(object):
             print('Starting model server at http://{0}:{1}...'.format(host, port))
             if debug:
                 logging.basicConfig(level=logging.DEBUG)
-                self.app.debug = True
-                self.app.run(host=host, port=port, debug=True, threaded=True)
-            else:
-                http_server = WSGIServer((host, port), self.app)
-                try:
-                    http_server.serve_forever()
-                except KeyboardInterrupt:
-                    print('Stopping server...')
-                    for job in self.jobs.values():
-                        job.cancel()
+            http_server = WSGIServer((host, port), self.app, handler_class=WebSocketHandler)
+            try:
+                http_server.serve_forever()
+            except KeyboardInterrupt:
+                print('Stopping server...')
+                for job in self.jobs.values():
+                    job.cancel()
