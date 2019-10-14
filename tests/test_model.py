@@ -17,6 +17,7 @@ from runway.exceptions import *
 from utils import *
 from deepdiff import DeepDiff
 from flask import abort
+from multiprocessing import Process
 
 os.environ['RW_NO_SERVE'] = '1'
 
@@ -688,6 +689,124 @@ def test_inference_coroutine():
 
     response = client.post('/test_command', json={'input': 5})
     assert response.json['output'] == 'hello world'
+
+def test_inference_async():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(0.5)
+        yield 'hello world'
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+
+        time.sleep(1)
+
+        response = json.loads(ws.recv())
+        assert response['status'] == 'SUCCEEDED'
+        assert response['data']['output'] == 'hello world'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+def test_inference_async_coroutine():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        time.sleep(1)
+        yield 'hello world'
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['status'] == 'RUNNING'
+        assert response['partial'] == True
+        assert response['data']['output'] == 'hello'
+        time.sleep(1)
+
+        response = json.loads(ws.recv())
+        assert response['status'] == 'SUCCEEDED'
+        assert response['data']['output'] == 'hello world'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+def test_inference_async_failure():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        raise Exception
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+
+        time.sleep(1)
+
+        response = json.loads(ws.recv())
+        assert response['status'] == 'FAILED'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+def test_inference_async_coroutine_failure():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        raise Exception
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+
+        time.sleep(1)
+
+        response = json.loads(ws.recv())
+        assert response['status'] == 'FAILED'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
 
 def test_gpu_in_manifest_no_env_set():
 

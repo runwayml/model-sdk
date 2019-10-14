@@ -29,7 +29,7 @@ class InferenceJob(object):
             self.queue.put(to_send)
 
         def send_error(error):
-            self.queue.put(error.to_response())
+            self.queue.put(dict(**error.to_response(), lastUpdated=timestamp_millis()))
 
         if inspect.isgeneratorfunction(self.command_fn):
             g = self.command_fn(self.model, self.inputs)

@@ -166,16 +166,21 @@ class RunwayModel(object):
                     job = InferenceJob(command_fn, self.model, deserialized_inputs)
                     job.start()
                     last_updated = None
+                    def send_response(resp, partial=False):
+                        if 'data' in resp:
+                            resp['data'] = serialize_data(resp['data'], outputs)
+                        resp['id'] = job_id
+                        resp['inputData'] = input_dict
+                        resp['partial'] = True
+                        ws.send(json.dumps(resp))
                     while job.get()['status'] == 'RUNNING':
                         response = job.get()
                         if 'data' in response and response['lastUpdated'] != last_updated:
-                            ws.send(json.dumps(response))
+                            send_response(response, partial=True)
                             last_updated = response['lastUpdated']
                         gevent.sleep(1)
                     response = job.get()
-                    if 'data' in response:
-                        response['data'] = serialize_data(response['data'], outputs)
-                    ws.send(json.dumps(response))
+                    send_response(response)
                 except RunwayError as err:
                     ws.send(json.dumps(err.to_response()))
                 except:
