@@ -717,6 +717,7 @@ def test_inference_async():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
+        proc.join(1)
         proc.terminate()
 
 def test_inference_async_coroutine():
@@ -751,6 +752,7 @@ def test_inference_async_coroutine():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
+        proc.join(1)
         proc.terminate()
 
 def test_inference_async_failure():
@@ -778,6 +780,7 @@ def test_inference_async_failure():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
+        proc.join(1)
         proc.terminate()
 
 def test_inference_async_coroutine_failure():
@@ -806,6 +809,7 @@ def test_inference_async_coroutine_failure():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
+        proc.join(1)
         proc.terminate()
 
 def test_gpu_in_manifest_no_env_set():
