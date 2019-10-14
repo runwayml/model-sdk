@@ -19,6 +19,9 @@ from deepdiff import DeepDiff
 from flask import abort
 from multiprocessing import Process
 
+from pytest_cov.embed import cleanup_on_sigterm
+cleanup_on_sigterm()
+
 os.environ['RW_NO_SERVE'] = '1'
 
 # Testing Flask Applications: http://flask.pocoo.org/docs/1.0/testing/
@@ -717,7 +720,6 @@ def test_inference_async():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
-        proc.join(1)
         proc.terminate()
 
 def test_inference_async_coroutine():
@@ -752,7 +754,6 @@ def test_inference_async_coroutine():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
-        proc.join(1)
         proc.terminate()
 
 def test_inference_async_failure():
@@ -780,7 +781,6 @@ def test_inference_async_failure():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
-        proc.join(1)
         proc.terminate()
 
 def test_inference_async_coroutine_failure():
@@ -809,7 +809,6 @@ def test_inference_async_coroutine_failure():
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
-        proc.join(1)
         proc.terminate()
 
 def test_gpu_in_manifest_no_env_set():
