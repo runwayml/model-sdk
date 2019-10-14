@@ -29,7 +29,9 @@ class InferenceJob(object):
             self.queue.put(to_send)
 
         def send_error(error):
-            self.queue.put(dict(**error.to_response(), lastUpdated=timestamp_millis()))
+            to_send = error.to_response()
+            to_send['lastUpdated'] = timestamp_millis()
+            self.queue.put(to_send)
 
         if inspect.isgeneratorfunction(self.command_fn):
             g = self.command_fn(self.model, self.inputs)
