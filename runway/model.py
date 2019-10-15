@@ -220,7 +220,8 @@ class RunwayModel(object):
                     input_dict = payload['inputData']
                     self.millis_last_command = timestamp_millis()
                     job_id = generate_uuid()
-                    job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict)).start()
+                    job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict))
+                    job.start()
                     jobs_for_session.append(job)
                     send_message('submitted', {'id': job_id})
 
@@ -230,10 +231,10 @@ class RunwayModel(object):
                     job = self.jobs[job_id]
                     if job in jobs_for_session:
                         job.terminate()
+                        send_message('cancelled', {'id': job_id})
 
             for job in jobs_for_session:
-                if job:
-                    job.terminate()
+                job.terminate()
 
         @self.app.route('/<command_name>', methods=['GET'])
         def usage_route(command_name):
@@ -584,5 +585,4 @@ class RunwayModel(object):
             except KeyboardInterrupt:
                 print('Stopping server...')
                 for job in self.jobs.values():
-                    if job:
-                        job.terminate()
+                    job.terminate()

@@ -871,6 +871,40 @@ def test_inference_async_wrong_command():
         ws.close()
         proc.terminate()
 
+@timeout(5)
+def test_inference_async_cancel():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(10)
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'submitted'
+        job_id = response['data']['id']
+
+        ws.send(create_ws_message('cancel', dict(id=job_id)))
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'cancelled'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
 def test_gpu_in_manifest_no_env_set():
 
     rw = RunwayModel()
