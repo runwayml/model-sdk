@@ -6,6 +6,7 @@ import traceback
 import inspect
 import json
 import gevent
+from multiprocessing import Process
 from six import reraise
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -15,7 +16,6 @@ from geventwebsocket.handler import WebSocketHandler
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
-from .inference import InferenceJob
 from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
         validate_post_request_body_is_json, get_json_or_none_if_invalid, argspec, \
         deserialize_data, serialize_data, generate_uuid
@@ -148,43 +148,88 @@ class RunwayModel(object):
         
         @self.sockets.route('/')
         def inference_socket(ws):
-            while not ws.closed:
+            jobs_for_session = []
+
+            def send_message(message_type, data):
+                ws.send(json.dumps(dict(type=message_type, data=data)))
+
+            def start_inference(job_id, command_name, input_dict):
+                def send_output(output):
+                    progress = None
+                    if type(output) == tuple:
+                        output, progress = output
+                    output = serialize_data(output, output_spec)
+                    to_send = {'outputData': output}
+                    if progress is not None:
+                        to_send['progress'] = progress
+                    send_message('result', to_send)
+
+                def send_error(error):
+                    send_message('failed', error.to_response())
+
                 try:
-                    payload = ws.receive()
-                    payload = json.loads(payload)
-                    command_name = payload['command']
-                    input_dict = payload['inputData']
                     try:
                         command_fn = self.command_fns[command_name]
                     except KeyError:
                         raise UnknownCommandError(command_name)
-                    inputs = self.commands[command_name]['inputs']
-                    outputs = self.commands[command_name]['outputs']
-                    deserialized_inputs = deserialize_data(input_dict, inputs)
+
+                    input_spec = self.commands[command_name]['inputs']
+                    output_spec = self.commands[command_name]['outputs']
+                    deserialized_inputs = deserialize_data(input_dict, input_spec)
+                    time_start = timestamp_millis()
+
+                    if inspect.isgeneratorfunction(command_fn):
+                        g = command_fn(self.model, deserialized_inputs)
+                        try:
+                            while True:
+                                output = next(g)
+                                send_output(output)
+                        except StopIteration as err:
+                            if hasattr(err, 'value') and err.value is not None:
+                                send_output(err.value)
+                        except Exception as err:
+                            error = InferenceError(repr(err))
+                            send_error(error)
+                    else:
+                        try:
+                            output = command_fn(self.model, deserialized_inputs)
+                            send_output(output)
+                        except Exception as err:
+                            error = InferenceError(repr(err))
+                            send_error(error)
+
+                    send_message('succeeded', {'id': job_id})
+
+                except RunwayError as err:
+                    send_error(err.to_response())
+
+                except:
+                    send_error({'error': 'An unknown error occurred'})
+
+            while not ws.closed:
+                message = ws.receive()
+                message = json.loads(message)
+
+                if message['type'] == 'submit':
+                    payload = message['data']
+                    command_name = payload['command']
+                    input_dict = payload['inputData']
                     self.millis_last_command = timestamp_millis()
                     job_id = generate_uuid()
-                    job = InferenceJob(command_fn, self.model, deserialized_inputs)
-                    job.start()
-                    last_updated = None
-                    def send_response(resp, partial=False):
-                        if 'data' in resp:
-                            resp['data'] = serialize_data(resp['data'], outputs)
-                        resp['id'] = job_id
-                        resp['inputData'] = input_dict
-                        resp['partial'] = True
-                        ws.send(json.dumps(resp))
-                    while job.get()['status'] == 'RUNNING':
-                        response = job.get()
-                        if 'data' in response and response['lastUpdated'] != last_updated:
-                            send_response(response, partial=True)
-                            last_updated = response['lastUpdated']
-                        gevent.sleep(1)
-                    response = job.get()
-                    send_response(response)
-                except RunwayError as err:
-                    ws.send(json.dumps(err.to_response()))
-                except:
-                    ws.send(json.dumps({'error': 'An unknown error occurred'}))
+                    job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict)).start()
+                    jobs_for_session.append(job)
+                    send_message('submitted', {'id': job_id})
+
+                elif message['type'] == 'cancel':
+                    payload = message['data']
+                    command_name = payload['id']
+                    job = self.jobs[job_id]
+                    if job in jobs_for_session:
+                        job.terminate()
+
+            for job in jobs_for_session:
+                if job:
+                    job.terminate()
 
         @self.app.route('/<command_name>', methods=['GET'])
         def usage_route(command_name):
@@ -535,4 +580,5 @@ class RunwayModel(object):
             except KeyboardInterrupt:
                 print('Stopping server...')
                 for job in self.jobs.values():
-                    job.cancel()
+                    if job:
+                        job.terminate()

@@ -693,6 +693,7 @@ def test_inference_coroutine():
     response = client.post('/test_command', json={'input': 5})
     assert response.json['output'] == 'hello world'
 
+@timeout(5)
 def test_inference_async():
     rw = RunwayModel()
 
@@ -709,19 +710,26 @@ def test_inference_async():
         time.sleep(0.5)
         ws = get_test_ws_client(rw)
 
-        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
-        time.sleep(1)
-
+        time.sleep(0.5)
         response = json.loads(ws.recv())
-        assert response['status'] == 'SUCCEEDED'
-        assert response['data']['output'] == 'hello world'
+        assert response['type'] == 'submitted'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['data']['outputData']['output'] == 'hello world'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'succeeded'
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
         proc.terminate()
 
+@timeout(5)
 def test_inference_async_coroutine():
     rw = RunwayModel()
 
@@ -739,23 +747,30 @@ def test_inference_async_coroutine():
         time.sleep(0.5)
         ws = get_test_ws_client(rw)
 
-        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
+        time.sleep(0.5)
         response = json.loads(ws.recv())
-        assert response['status'] == 'RUNNING'
-        assert response['partial'] == True
-        assert response['data']['output'] == 'hello'
-        time.sleep(1)
+        assert response['type'] == 'submitted'
 
+        time.sleep(0.5)
         response = json.loads(ws.recv())
-        assert response['status'] == 'SUCCEEDED'
-        assert response['data']['output'] == 'hello world'
+        assert response['data']['outputData']['output'] == 'hello'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['data']['outputData']['output'] == 'hello world'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'succeeded'
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
         proc.terminate()
 
+@timeout(5)
 def test_inference_async_failure():
     rw = RunwayModel()
 
@@ -771,18 +786,22 @@ def test_inference_async_failure():
         time.sleep(0.5)
         ws = get_test_ws_client(rw)
 
-        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
-        time.sleep(1)
-
+        time.sleep(0.5)
         response = json.loads(ws.recv())
-        assert response['status'] == 'FAILED'
+        assert response['type'] == 'submitted'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'failed'
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
         ws.close()
         proc.terminate()
 
+@timeout(5)
 def test_inference_async_coroutine_failure():
     rw = RunwayModel()
 
@@ -799,12 +818,19 @@ def test_inference_async_coroutine_failure():
         time.sleep(0.5)
         ws = get_test_ws_client(rw)
 
-        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
-        time.sleep(1)
-
+        time.sleep(0.5)
         response = json.loads(ws.recv())
-        assert response['status'] == 'FAILED'
+        assert response['type'] == 'submitted'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['data']['outputData']['output'] == 'hello'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'failed'
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
