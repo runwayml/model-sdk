@@ -154,19 +154,6 @@ class RunwayModel(object):
                 ws.send(json.dumps(dict(type=message_type, data=data)))
 
             def start_inference(job_id, command_name, input_dict):
-                def send_output(output):
-                    progress = None
-                    if type(output) == tuple:
-                        output, progress = output
-                    output = serialize_data(output, output_spec)
-                    to_send = {'outputData': output}
-                    if progress is not None:
-                        to_send['progress'] = progress
-                    send_message('result', to_send)
-
-                def send_error(error):
-                    send_message('failed', error.to_response())
-
                 try:
                     try:
                         command_fn = self.command_fns[command_name]
@@ -177,6 +164,19 @@ class RunwayModel(object):
                     output_spec = self.commands[command_name]['outputs']
                     deserialized_inputs = deserialize_data(input_dict, input_spec)
                     time_start = timestamp_millis()
+
+                    last_output = None
+
+                    def send_output(output):
+                        progress = None
+                        if type(output) == tuple:
+                            output, progress = output
+                        output = serialize_data(output, output_spec)
+                        last_output = output
+                        to_send = {'outputData': output}
+                        if progress is not None:
+                            to_send['progress'] = progress
+                        send_message('result', to_send)
 
                     if inspect.isgeneratorfunction(command_fn):
                         g = command_fn(self.model, deserialized_inputs)
@@ -198,13 +198,17 @@ class RunwayModel(object):
                             error = InferenceError(repr(err))
                             send_error(error)
 
-                    send_message('succeeded', {'id': job_id})
+                    send_message('succeeded', {
+                        'id': job_id,
+                        'outputData': last_output,
+                        'timeElapsed': timestamp_millis() - time_start
+                    })
 
                 except RunwayError as err:
-                    send_error(err.to_response())
+                    send_message('failed', err.to_response())
 
                 except:
-                    send_error({'error': 'An unknown error occurred'})
+                    send_message('failed', {'error': 'An unknown error occurred'})
 
             while not ws.closed:
                 message = ws.receive()

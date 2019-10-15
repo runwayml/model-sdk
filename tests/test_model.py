@@ -735,9 +735,9 @@ def test_inference_async_coroutine():
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
     def test_command(model, inputs):
-        yield 'hello'
+        yield 'hello', 0.5
         time.sleep(1)
-        yield 'hello world'
+        yield 'hello world', 1
 
     try:
         os.environ['RW_NO_SERVE'] = '0'
@@ -756,10 +756,12 @@ def test_inference_async_coroutine():
         time.sleep(0.5)
         response = json.loads(ws.recv())
         assert response['data']['outputData']['output'] == 'hello'
+        assert response['data']['progress'] == 0.5
 
         time.sleep(0.5)
         response = json.loads(ws.recv())
         assert response['data']['outputData']['output'] == 'hello world'
+        assert response['data']['progress'] == 1
 
         time.sleep(0.5)
         response = json.loads(ws.recv())
@@ -827,6 +829,38 @@ def test_inference_async_coroutine_failure():
         time.sleep(0.5)
         response = json.loads(ws.recv())
         assert response['data']['outputData']['output'] == 'hello'
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'failed'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
+def test_inference_async_wrong_command():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        raise Exception
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command1', inputData={'input': 5})))
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'submitted'
 
         time.sleep(0.5)
         response = json.loads(ws.recv())
