@@ -20,7 +20,7 @@ def get_manifest(client):
     return json.loads(response.data)
 
 def create_ws_message(message_type, data):
-    return json.dumps(dict(type=message_type, data=data))
+    return json.dumps(dict(type=message_type, **data))
 
 class TimeoutError(Exception):
     pass

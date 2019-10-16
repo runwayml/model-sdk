@@ -151,7 +151,7 @@ class RunwayModel(object):
             jobs_for_session = []
 
             def send_message(message_type, data):
-                ws.send(json.dumps(dict(type=message_type, data=data)))
+                ws.send(json.dumps(dict(type=message_type, **data)))
 
             def start_inference(job_id, command_name, input_dict):
                 try:
@@ -215,9 +215,8 @@ class RunwayModel(object):
                 message = json.loads(message)
 
                 if message['type'] == 'submit':
-                    payload = message['data']
-                    command_name = payload['command']
-                    input_dict = payload['inputData']
+                    command_name = message['command']
+                    input_dict = message['inputData']
                     self.millis_last_command = timestamp_millis()
                     job_id = generate_uuid()
                     job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict))
@@ -226,8 +225,7 @@ class RunwayModel(object):
                     send_message('submitted', {'id': job_id})
 
                 elif message['type'] == 'cancel':
-                    payload = message['data']
-                    command_name = payload['id']
+                    command_name = message['id']
                     job = self.jobs[job_id]
                     if job in jobs_for_session:
                         job.terminate()

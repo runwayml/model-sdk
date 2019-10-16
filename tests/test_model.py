@@ -716,7 +716,7 @@ def test_inference_async():
         assert response['type'] == 'submitted'
 
         response = json.loads(ws.recv())
-        assert response['data']['outputData']['output'] == 'hello world'
+        assert response['outputData']['output'] == 'hello world'
 
         response = json.loads(ws.recv())
         assert response['type'] == 'succeeded'
@@ -750,12 +750,12 @@ def test_inference_async_coroutine():
         assert response['type'] == 'submitted'
 
         response = json.loads(ws.recv())
-        assert response['data']['outputData']['output'] == 'hello'
-        assert response['data']['progress'] == 0.5
+        assert response['outputData']['output'] == 'hello'
+        assert response['progress'] == 0.5
 
         response = json.loads(ws.recv())
-        assert response['data']['outputData']['output'] == 'hello world'
-        assert response['data']['progress'] == 1
+        assert response['outputData']['output'] == 'hello world'
+        assert response['progress'] == 1
 
         response = json.loads(ws.recv())
         assert response['type'] == 'succeeded'
@@ -817,7 +817,7 @@ def test_inference_async_coroutine_failure():
         assert response['type'] == 'submitted'
 
         response = json.loads(ws.recv())
-        assert response['data']['outputData']['output'] == 'hello'
+        assert response['outputData']['output'] == 'hello'
 
         response = json.loads(ws.recv())
         assert response['type'] == 'failed'
@@ -878,7 +878,7 @@ def test_inference_async_cancel():
         time.sleep(0.5)
         response = json.loads(ws.recv())
         assert response['type'] == 'submitted'
-        job_id = response['data']['id']
+        job_id = response['id']
 
         ws.send(create_ws_message('cancel', dict(id=job_id)))
 
