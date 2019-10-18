@@ -185,15 +185,13 @@ class RunwayModel(object):
                             if hasattr(err, 'value') and err.value is not None:
                                 send_output(err.value)
                         except Exception as err:
-                            error = InferenceError(repr(err))
-                            send_error(error)
+                            raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
                     else:
                         try:
                             output = command_fn(self.model, deserialized_inputs)
                             send_output(output)
                         except Exception as err:
-                            error = InferenceError(repr(err))
-                            send_error(error)
+                            raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
 
                     send_message('succeeded', {
                         'id': job_id,
@@ -202,13 +200,18 @@ class RunwayModel(object):
 
                 except RunwayError as err:
                     send_message('failed', err.to_response())
+                    err.print_exception()
 
-                except:
+                except Exception as err:
                     send_message('failed', {'error': 'An unknown error occurred'})
+                    print(err)
 
             while not ws.closed:
                 message = ws.receive()
-                message = json.loads(message)
+                try:
+                    message = json.loads(message)
+                except:
+                    continue
 
                 if message['type'] == 'submit':
                     command_name = message['command']
