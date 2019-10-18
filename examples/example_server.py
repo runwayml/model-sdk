@@ -5,10 +5,17 @@ from runway.data_types import text
 def setup(options):
     return options['suffix']
 
+import time
 
 @runway.command('lower2upper', inputs={'input': text}, outputs={'output': text})
 def lower2upper(suffix, inputs):
-    return {'output': inputs['input'].upper() + suffix}
+    result = inputs['input'].upper() + suffix
+    ret = ''
+    for i in range(len(result)):
+        ret += result[i]
+        yield ret
+        time.sleep(1)
+    # return {'output': }
 
 
 if __name__ == '__main__':

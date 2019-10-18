@@ -165,18 +165,15 @@ class RunwayModel(object):
                     deserialized_inputs = deserialize_data(input_dict, input_spec)
                     time_start = timestamp_millis()
 
-                    last_output = None
-
                     def send_output(output):
                         progress = None
                         if type(output) == tuple:
                             output, progress = output
                         output = serialize_data(output, output_spec)
-                        last_output = output
                         to_send = {'outputData': output}
                         if progress is not None:
                             to_send['progress'] = progress
-                        send_message('result', to_send)
+                        send_message('output', to_send)
 
                     if inspect.isgeneratorfunction(command_fn):
                         g = command_fn(self.model, deserialized_inputs)
@@ -200,7 +197,6 @@ class RunwayModel(object):
 
                     send_message('succeeded', {
                         'id': job_id,
-                        'outputData': last_output,
                         'timeElapsed': timestamp_millis() - time_start
                     })
 
