@@ -727,6 +727,40 @@ def test_inference_async():
         proc.terminate()
 
 @timeout(5)
+def test_inference_async_provide_id():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(0.5)
+        yield 'hello world'
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', id='test', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'submitted'
+        assert response['id'] == 'test'
+
+        response = json.loads(ws.recv())
+        assert response['outputData']['output'] == 'hello world'
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'succeeded'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
 def test_inference_async_coroutine():
     rw = RunwayModel()
 

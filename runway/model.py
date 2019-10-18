@@ -217,7 +217,12 @@ class RunwayModel(object):
                     command_name = message['command']
                     input_dict = message['inputData']
                     self.millis_last_command = timestamp_millis()
-                    job_id = generate_uuid()
+                    if 'id' in message:
+                        job_id = message['id']
+                        if job_id in self.jobs:
+                            continue
+                    else:
+                        job_id = generate_uuid()
                     job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict))
                     job.start()
                     jobs_for_session.append(job)
