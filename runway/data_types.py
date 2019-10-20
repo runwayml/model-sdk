@@ -176,9 +176,31 @@ class image(BaseType):
     :param height: The height of the image, defaults to None
     :type height: int, optional
     """
-    def __init__(self, description=None, channels=3, min_width=None, min_height=None, max_width=None, max_height=None, width=None, height=None):
+    def __init__(
+        self,
+        description=None,
+        channels=3,
+        min_width=None,
+        min_height=None,
+        max_width=None,
+        max_height=None,
+        width=None,
+        height=None,
+        default_output_format=None
+    ):
         super(image, self).__init__('image', description=description)
         self.channels = channels
+        if channels not in [1, 3, 4]:
+            raise InvalidArgumentError(self.name or self.type, 'channels value needs to be 1, 3, or 4')
+        if default_output_format and default_output_format not in ['JPEG', 'PNG']:
+            msg = 'default_output_format needs to be JPEG or PNG'
+            raise InvalidArgumentError(self.name, msg)
+        if default_output_format:
+            self.default_output_format = default_output_format
+        elif self.channels == 3:
+            self.default_output_format = 'JPEG'
+        else:
+            self.default_output_format = 'PNG'
         self.min_width = min_width
         self.min_height = min_height
         self.max_width = max_width
@@ -186,22 +208,33 @@ class image(BaseType):
         self.width = width
         self.height = height
 
+    def get_pil_mode(self):
+        if self.channels == 1: return 'L'
+        elif self.channels == 3: return 'RGB'
+        elif self.channels == 4: return 'RGBA'
+
     def deserialize(self, value):
         image = value[value.find(",")+1:]
         image = base64.decodestring(image.encode('utf8'))
         buffer = IO(image)
-        return Image.open(buffer)
+        deserialized_image = Image.open(buffer)
+        if deserialized_image.mode != self.get_pil_mode():
+            deserialized_image = deserialized_image.convert(self.get_pil_mode())
+        return deserialized_image
 
     def serialize(self, value):
         if type(value) is np.ndarray:
-            im_pil = Image.fromarray(value)
+            im_pil = Image.fromarray(value.astype(np.uint8))
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
             raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
         buffer = IO()
-        im_pil.save(buffer, format='PNG')
-        return 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode('utf8')
+        if im_pil.mode != self.get_pil_mode():
+            im_pil = im_pil.convert(self.get_pil_mode())
+        im_pil.save(buffer, format=self.default_output_format)
+        body = base64.b64encode(buffer.getvalue()).decode('utf8')
+        return 'data:image/{format};base64,{body}'.format(format=self.default_output_format.lower(), body=body)
 
     def to_dict(self):
         ret = super(image, self).to_dict()
@@ -212,6 +245,7 @@ class image(BaseType):
         if self.max_height: ret['maxHeight'] = self.max_height
         if self.width: ret['width'] = self.width
         if self.height: ret['height'] = self.height
+        ret['defaultOutputFormat'] = self.default_output_format
         return ret
 
 
@@ -432,14 +466,12 @@ class file(BaseType):
     .. code-block:: python
 
         import runway
-        from runway.data_types import file, category
+        from runway.data_types import file
 
-        inputs = {"directory": file(is_directory=True)}
-        outputs = {"result": category(choices=["success", "failure"])}
-        @runway.command("batch_process", inputs=inputs, outputs=outputs)
-        def batch_process(result_of_setup, args):
-            result = do_something_with(args["directory"])
-            return { "result": "success" if result else "failure" }
+        @runway.setup(options={"checkpoint": file(extension=".h5"))
+        def setup(opts):
+            model = initialize_model_from_checkpoint(args["checkpoint"])
+            return model
 
     :param description: A description of this variable and how its used in the model,
         defaults to None
@@ -478,6 +510,28 @@ class file(BaseType):
         if self.extension: ret['extension'] = self.extension
         return ret
 
+
+class directory(file):
+    """A data type that represents a file directory. It can be a local \
+        path on disk or a remote tarball loaded over HTTP. \
+
+    .. code-block:: python
+
+        import runway
+        from runway.data_types import directory
+
+        @runway.setup(options={"checkpoint_dir": directory})
+        def setup(opts):
+            model = initialize_model_from_checkpoint_folder(args["checkpoint_dir"])
+            return model
+
+    :param description: A description of this variable and how its used in the model,
+        defaults to None
+    :type description: string, optional
+    """
+
+    def __init__(self, description=None):
+        super(directory, self).__init__(description=description, is_directory=True)
 
 class segmentation(BaseType):
     """A datatype that represents a pixel-level segmentation of an image.
@@ -682,10 +736,7 @@ class image_point(BaseType):
         super(image_point, self).__init__('image_point', description=description)
     
     def validate(self, value):
-        if len(value) == 2:
-            if not all([0 <= item <= 1 for item in value]):
-                raise InvalidArgumentError(self.name, 'Point coordinates must be between 0 and 1')
-        else:
+        if len(value) != 2:
             raise InvalidArgumentError(self.name, 'Value must be of length 2')
         
     def deserialize(self, value):
@@ -722,8 +773,6 @@ class image_bounding_box(BaseType):
     
     def validate(self, value):
         if len(value) == 4:
-            if not all([0 <= item <= 1 for item in value]):
-                raise InvalidArgumentError(self.name, 'Bounding box coordinates must be between 0 and 1')
             left, top, right, bottom = value
             if left >= right:
                 message = '%s[0] must be less than %s[2]' % (self.name, self.name)
@@ -842,9 +891,6 @@ class image_landmarks(BaseType):
         for index, point in enumerate(landmarks):
             if len(point) != 2:
                 msg = 'Expected point at index {} to have 2 elements, instead got {} elements'.format(index, len(point))
-                raise InvalidArgumentError(self.name, msg)
-            if not all(([0 <= coord <= 1 for coord in point])):
-                msg = 'Point coordinates must be between 0 and 1'
                 raise InvalidArgumentError(self.name, msg)
 
     def deserialize(self, value):

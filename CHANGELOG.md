@@ -10,6 +10,16 @@ Until version 1.0.0, expect that minor version changes may introduce breaking ch
 
 - Added support for streaming inference via WebSockets.
 
+## v.0.4.3
+
+- Add `default_output_format` option in `runway.image` data type.
+- Convert `runway.image` input to the specified number of channels.
+
+## v.0.4.2
+
+- Add `runway.directory` as an alias to `runway.file(is_directory=True)`.
+- Remove range restrictions from `image_point`, `image_landmarks`, and `image_bounding_box` data types.
+
 ## v.0.4.1
 
 - Set default port to 9000.

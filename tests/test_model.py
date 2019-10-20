@@ -349,7 +349,8 @@ def test_meta(capsys):
                         'channels': 3,
                         'type': 'image',
                         'name': 'image',
-                        'description': None
+                        'description': None,
+                        'defaultOutputFormat': 'JPEG'
                     },
                     {
                         'samplingMean': 0,
