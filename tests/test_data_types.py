@@ -5,6 +5,11 @@ sys.path.insert(0, '..')
 sys.path.insert(0, '.')
 
 import os
+if sys.version_info[0] < 3:
+    from cStringIO import StringIO as IO
+else:
+    from io import BytesIO as IO
+import base64
 import pytest
 import numpy as np
 from PIL import Image
@@ -287,6 +292,14 @@ def test_file_to_dict_directory():
     assert obj['isDirectory'] == True
     assert obj['description'] == description
 
+def test_directory_to_dict():
+    description = 'A description about this variable.'
+    f = directory(description=description)
+    obj = f.to_dict()
+    assert obj['type'] == 'file'
+    assert obj['isDirectory'] == True
+    assert obj['description'] == description
+
 def test_file_serialization_base():
     f = file()
     assert 'file.txt' == f.serialize('file.txt')
@@ -379,6 +392,7 @@ def test_image_to_dict():
     assert obj['minHeight'] == 128
     assert obj['maxHeight'] == 512
     assert obj['description'] == None
+    assert obj['defaultOutputFormat'] == 'JPEG'
 
 def test_image_serialize_and_deserialize():
     directory = os.path.dirname(os.path.realpath(__file__))
@@ -391,6 +405,17 @@ def test_image_serialize_and_deserialize():
     deserialize_np_img = image().deserialize(serialize_np_img)
     assert issubclass(type(deserialize_np_img), Image.Image)
 
+    serialize_np_img = image(channels=1).serialize(np.asarray(img))
+    img = serialize_np_img[serialize_np_img.find(",")+1:]
+    img = base64.decodestring(img.encode('utf8'))
+    buffer = IO(img)
+    deserialized_image = Image.open(buffer)
+    assert(deserialized_image.mode == 'L')
+
+    deserialize_np_img = image(channels=4).deserialize(serialize_np_img)
+    assert(deserialize_np_img.mode == 'RGBA')
+    assert(np.array(deserialize_np_img).shape[2] == 4)
+
 def test_image_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image().serialize(True)
@@ -400,6 +425,19 @@ def test_image_serialize_invalid_type():
 
     with pytest.raises(InvalidArgumentError):
         image().serialize('data:image/jpeg;base64,')
+
+    with pytest.raises(InvalidArgumentError):
+        image(default_output_format='TXT')
+
+    with pytest.raises(InvalidArgumentError):
+        image(channels=2)
+
+
+def test_image_default_output_format():
+    assert image(default_output_format='PNG').default_output_format == 'PNG'
+    assert image(channels=3).default_output_format == 'JPEG'
+    assert image(channels=4).default_output_format == 'PNG'
+    assert image(channels=1).default_output_format == 'PNG'
 
 # SEGMENTATION -----------------------------------------------------------------
 def test_segmentation_to_dict():
@@ -551,15 +589,11 @@ def test_image_point_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_point().serialize([])
     with pytest.raises(InvalidArgumentError):
-        image_point().serialize([1, 2])
-    with pytest.raises(InvalidArgumentError):
         image_point().serialize([0.1])
 
 def test_image_point_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_point().deserialize([])
-    with pytest.raises(InvalidArgumentError):
-        image_point().deserialize([1, 2])
     with pytest.raises(InvalidArgumentError):
         image_point().deserialize([0.1])
 
@@ -586,8 +620,6 @@ def test_image_bounding_box_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_bounding_box().serialize([])
     with pytest.raises(InvalidArgumentError):
-        image_bounding_box().serialize([1, 2, 3, 4])
-    with pytest.raises(InvalidArgumentError):
         image_bounding_box().serialize([1, 0, 0, 1])
     with pytest.raises(InvalidArgumentError):
         image_bounding_box().serialize([0, 1, 0, 0])
@@ -595,8 +627,6 @@ def test_image_bounding_box_serialize_invalid_type():
 def test_image_bounding_box_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_bounding_box().deserialize([])
-    with pytest.raises(InvalidArgumentError):
-        image_bounding_box().deserialize([1, 2, 3, 4])
     with pytest.raises(InvalidArgumentError):
         image_bounding_box().deserialize([1, 0, 0, 1])
     with pytest.raises(InvalidArgumentError):
@@ -653,8 +683,6 @@ def test_image_landmarks_serialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_landmarks(0).serialize([])
     with pytest.raises(InvalidArgumentError):
-        image_landmarks(1).serialize([[500, 500]])
-    with pytest.raises(InvalidArgumentError):
         image_landmarks(2).serialize([[0.5, 0.5]])
     with pytest.raises(InvalidArgumentError):
         image_landmarks(2).serialize([[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]])
@@ -662,8 +690,6 @@ def test_image_landmarks_serialize_invalid_type():
 def test_image_landmarks_deserialize_invalid_type():
     with pytest.raises(InvalidArgumentError):
         image_landmarks(0).deserialize([])
-    with pytest.raises(InvalidArgumentError):
-        image_landmarks(1).deserialize([[500, 500]])
     with pytest.raises(InvalidArgumentError):
         image_landmarks(2).deserialize([[0.5, 0.5]])
     with pytest.raises(InvalidArgumentError):
