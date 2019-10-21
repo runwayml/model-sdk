@@ -714,7 +714,7 @@ def test_inference_async():
         ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'submitted'
+        assert response['type'] == 'started'
 
         response = json.loads(ws.recv())
         assert response['outputData']['output'] == 'hello world'
@@ -747,7 +747,7 @@ def test_inference_async_provide_id():
         ws.send(create_ws_message('submit', dict(command='test_command', id='test', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'submitted'
+        assert response['type'] == 'started'
         assert response['id'] == 'test'
 
         response = json.loads(ws.recv())
@@ -782,7 +782,7 @@ def test_inference_async_coroutine():
         ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'submitted'
+        assert response['type'] == 'started'
 
         response = json.loads(ws.recv())
         assert response['outputData']['output'] == 'hello'
@@ -819,7 +819,7 @@ def test_inference_async_failure():
         ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'submitted'
+        assert response['type'] == 'started'
 
         response = json.loads(ws.recv())
         assert response['type'] == 'failed'
@@ -849,7 +849,7 @@ def test_inference_async_coroutine_failure():
         ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'submitted'
+        assert response['type'] == 'started'
 
         response = json.loads(ws.recv())
         assert response['outputData']['output'] == 'hello'
@@ -882,7 +882,7 @@ def test_inference_async_wrong_command():
         ws.send(create_ws_message('submit', dict(command='test_command1', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'submitted'
+        assert response['type'] == 'started'
 
         response = json.loads(ws.recv())
         assert response['type'] == 'failed'
@@ -912,7 +912,7 @@ def test_inference_async_cancel():
 
         time.sleep(0.5)
         response = json.loads(ws.recv())
-        assert response['type'] == 'submitted'
+        assert response['type'] == 'started'
         job_id = response['id']
 
         ws.send(create_ws_message('cancel', dict(id=job_id)))

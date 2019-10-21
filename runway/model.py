@@ -226,7 +226,7 @@ class RunwayModel(object):
                     job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict))
                     job.start()
                     jobs_for_session[job_id] = job
-                    send_message(job_id, 'submitted')
+                    send_message(job_id, 'started')
 
                 elif message['type'] == 'cancel':
                     command_name = message['id']
