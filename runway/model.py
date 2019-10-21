@@ -148,10 +148,11 @@ class RunwayModel(object):
         
         @self.sockets.route('/')
         def inference_socket(ws):
-            jobs_for_session = []
+            session_id = generate_uuid()
+            self.jobs[session_id] = jobs_for_session = {}
 
-            def send_message(message_type, data):
-                ws.send(json.dumps(dict(type=message_type, **data)))
+            def send_message(job_id, message_type, data={}):
+                ws.send(json.dumps(dict(type=message_type, id=job_id, **data)))
 
             def start_inference(job_id, command_name, input_dict):
                 try:
@@ -173,7 +174,7 @@ class RunwayModel(object):
                         to_send = {'outputData': output}
                         if progress is not None:
                             to_send['progress'] = progress
-                        send_message('output', to_send)
+                        send_message(job_id, 'output', to_send)
 
                     if inspect.isgeneratorfunction(command_fn):
                         g = command_fn(self.model, deserialized_inputs)
@@ -193,17 +194,16 @@ class RunwayModel(object):
                         except Exception as err:
                             raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
 
-                    send_message('succeeded', {
-                        'id': job_id,
+                    send_message(job_id, 'succeeded', {
                         'timeElapsed': timestamp_millis() - time_start
                     })
 
                 except RunwayError as err:
-                    send_message('failed', err.to_response())
+                    send_message(job_id, 'failed', err.to_response())
                     err.print_exception()
 
                 except Exception as err:
-                    send_message('failed', {'error': 'An unknown error occurred'})
+                    send_message(job_id, 'failed', {'error': 'An unknown error occurred'})
                     print(err)
 
             while not ws.closed:
@@ -225,17 +225,16 @@ class RunwayModel(object):
                         job_id = generate_uuid()
                     job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict))
                     job.start()
-                    jobs_for_session.append(job)
-                    send_message('submitted', {'id': job_id})
+                    jobs_for_session[job_id] = job
+                    send_message(job_id, 'submitted')
 
                 elif message['type'] == 'cancel':
                     command_name = message['id']
-                    job = self.jobs[job_id]
-                    if job in jobs_for_session:
-                        job.terminate()
-                        send_message('cancelled', {'id': job_id})
+                    if job_id in jobs_for_session:
+                        jobs_for_session[job_id].terminate()
+                        send_message(job_id, 'cancelled')
 
-            for job in jobs_for_session:
+            for job in jobs_for_session.values():
                 job.terminate()
 
         @self.app.route('/<command_name>', methods=['GET'])
@@ -586,5 +585,6 @@ class RunwayModel(object):
                 http_server.serve_forever()
             except KeyboardInterrupt:
                 print('Stopping server...')
-                for job in self.jobs.values():
-                    job.terminate()
+                for jobs_for_session in self.jobs.values():
+                    for job in jobs_for_session.values():
+                        job.terminate()
