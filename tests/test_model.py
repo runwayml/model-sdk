@@ -8,14 +8,19 @@ sys.path.insert(0, '.')
 import os
 import json
 import pytest
+import time
 from time import sleep
 from runway.model import RunwayModel
 from runway.__version__ import __version__ as model_sdk_version
 from runway.data_types import category, text, number, array, image, vector, file, any as any_type
 from runway.exceptions import *
-from utils import get_test_client, get_manifest
+from utils import *
 from deepdiff import DeepDiff
 from flask import abort
+from multiprocessing import Process
+
+from pytest_cov.embed import cleanup_on_sigterm
+cleanup_on_sigterm()
 
 os.environ['RW_NO_SERVE'] = '1'
 
@@ -672,6 +677,254 @@ def test_millis_since_last_command_resets_each_command():
         assert millis_since_last_command > first_time
         client.post('test_command', json={ 'input': 5 })
         assert get_manifest(client)['millisSinceLastCommand'] < millis_since_last_command
+
+def test_inference_coroutine():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        time.sleep(1)
+        yield 'hello world'
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+
+    response = client.post('/test_command', json={'input': 5})
+    assert response.json['output'] == 'hello world'
+
+@timeout(5)
+def test_inference_async():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(0.5)
+        yield 'hello world'
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'started'
+
+        response = json.loads(ws.recv())
+        assert response['outputData']['output'] == 'hello world'
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'succeeded'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
+def test_inference_async_provide_id():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(0.5)
+        yield 'hello world'
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', id='test', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'started'
+        assert response['id'] == 'test'
+
+        response = json.loads(ws.recv())
+        assert response['outputData']['output'] == 'hello world'
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'succeeded'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
+def test_inference_async_coroutine():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello', 0.5
+        time.sleep(1)
+        yield 'hello world', 1
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'started'
+
+        response = json.loads(ws.recv())
+        assert response['outputData']['output'] == 'hello'
+        assert response['progress'] == 0.5
+
+        response = json.loads(ws.recv())
+        assert response['outputData']['output'] == 'hello world'
+        assert response['progress'] == 1
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'succeeded'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
+def test_inference_async_failure():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        raise Exception
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'started'
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'failed'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
+def test_inference_async_coroutine_failure():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        raise Exception
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'started'
+
+        response = json.loads(ws.recv())
+        assert response['outputData']['output'] == 'hello'
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'failed'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
+def test_inference_async_wrong_command():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        yield 'hello'
+        raise Exception
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command1', inputData={'input': 5})))
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'started'
+
+        response = json.loads(ws.recv())
+        assert response['type'] == 'failed'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
+
+@timeout(5)
+def test_inference_async_cancel():
+    rw = RunwayModel()
+
+    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
+    def test_command(model, inputs):
+        time.sleep(10)
+
+    try:
+        os.environ['RW_NO_SERVE'] = '0'
+        proc = Process(target=rw.run)
+        proc.start()
+
+        time.sleep(0.5)
+        ws = get_test_ws_client(rw)
+
+        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'started'
+        job_id = response['id']
+
+        ws.send(create_ws_message('cancel', dict(id=job_id)))
+
+        time.sleep(0.5)
+        response = json.loads(ws.recv())
+        assert response['type'] == 'cancelled'
+
+    finally:
+        os.environ['RW_NO_SERVE'] = '1'
+        ws.close()
+        proc.terminate()
 
 def test_gpu_in_manifest_no_env_set():
 

@@ -6,3 +6,4 @@ gevent>=1.4.0
 wget>=3.2
 six>=1.12.0
 colorcet>=2.0.1
+Flask-Sockets==0.2.1

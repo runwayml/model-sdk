@@ -1,4 +1,5 @@
 pytest==4.4.0
-pytest-cov==2.6.1
+pytest-cov==2.8.1
 deepdiff==3.3.0
 twine==1.13.0
+websocket-client==0.56.0

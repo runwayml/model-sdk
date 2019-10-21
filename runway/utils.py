@@ -9,6 +9,7 @@ import sys
 import gzip
 import datetime
 import colorcet
+import uuid
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
@@ -130,3 +131,31 @@ def argspec(fn):
         return inspect.getargspec(fn)
     else:
         return inspect.getfullargspec(fn)
+
+
+def deserialize_data(data, fields):
+    ret = {}
+    for field in fields:
+        name = field.name
+        if name in data:
+            ret[name] = field.deserialize(data[name])
+        elif hasattr(field, 'default'):
+            ret[name] = field.default
+        else:
+            raise Exception('Missing field:', field.name)
+    return ret
+
+
+def serialize_data(data, fields):
+    if type(data) != dict and len(fields) == 1:
+        name = fields[0].name
+        data = {name: data}
+    ret = {}
+    for field in fields:
+        name = field.name
+        ret[name] = field.serialize(data[name])
+    return ret
+    
+
+def generate_uuid():
+    return uuid.uuid4().hex
