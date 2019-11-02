@@ -480,12 +480,15 @@ class file(BaseType):
     :type is_directory: bool, optional
     :param extension: Accept only files of this extension.
     :type extension: string, optional
+    :param default: Use this path if no input file or directory is provided.
+    :type default: string, optional
     """
 
-    def __init__(self, description=None, is_directory=False, extension=None):
+    def __init__(self, description=None, is_directory=False, extension=None, default=None):
         super(file, self).__init__('file', description=description)
         self.is_directory = is_directory
         self.extension = extension
+        self.default = default
 
     def deserialize(self, path_or_url):
         if is_url(path_or_url):
@@ -508,6 +511,7 @@ class file(BaseType):
         ret = super(file, self).to_dict()
         if self.is_directory: ret['isDirectory'] = self.is_directory
         if self.extension: ret['extension'] = self.extension
+        if self.default: ret['default'] = self.default
         return ret
 
 
@@ -530,8 +534,8 @@ class directory(file):
     :type description: string, optional
     """
 
-    def __init__(self, description=None):
-        super(directory, self).__init__(description=description, is_directory=True)
+    def __init__(self, description=None, default=None):
+        super(directory, self).__init__(description=description, is_directory=True, default=default)
 
 class segmentation(BaseType):
     """A datatype that represents a pixel-level segmentation of an image.
