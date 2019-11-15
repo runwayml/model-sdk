@@ -290,7 +290,7 @@ class vector(BaseType):
         self.length = length
         self.sampling_mean = sampling_mean
         self.sampling_std = sampling_std
-        self.default = default or np.full((length,), sampling_mean).tolist()
+        self.default = default
 
     def deserialize(self, value):
         return np.array(value)

@@ -223,8 +223,8 @@ def test_vector_deserialization():
     assert isinstance(deserialized, np.ndarray)
 
 def test_vector_default():
-    vector_type = vector(length=5, sampling_mean=42)
-    assert np.array_equal(vector_type.default, [42, 42, 42, 42, 42])
+    vector_type = vector(length=5, sampling_mean=42, default=[1, 2, 3, 4, 5])
+    assert np.array_equal(vector_type.default, [1, 2, 3, 4, 5])
 
 def test_vector_invalid_default():
     with pytest.raises(InvalidArgumentError):
