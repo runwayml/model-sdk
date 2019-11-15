@@ -358,7 +358,7 @@ def test_meta(capsys):
                         'type': 'vector',
                         'name': 'vector',
                         'samplingStd': 1,
-                        'default': [0, 0, 0, 0, 0],
+                        'default': None,
                         'description': None
                     },
                 ],
@@ -703,6 +703,9 @@ def test_inference_async():
         time.sleep(0.5)
         yield 'hello world'
 
+    ws = None
+    proc = None
+
     try:
         os.environ['RW_NO_SERVE'] = '0'
         proc = Process(target=rw.run)
@@ -724,8 +727,8 @@ def test_inference_async():
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
-        ws.close()
-        proc.terminate()
+        if ws: ws.close()
+        if proc: proc.terminate()
 
 @timeout(5)
 def test_inference_async_provide_id():
@@ -735,6 +738,9 @@ def test_inference_async_provide_id():
     def test_command(model, inputs):
         time.sleep(0.5)
         yield 'hello world'
+
+    ws = None
+    proc = None
 
     try:
         os.environ['RW_NO_SERVE'] = '0'
@@ -758,8 +764,8 @@ def test_inference_async_provide_id():
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
-        ws.close()
-        proc.terminate()
+        if ws: ws.close()
+        if proc: proc.terminate()
 
 @timeout(5)
 def test_inference_async_coroutine():
@@ -770,6 +776,9 @@ def test_inference_async_coroutine():
         yield 'hello', 0.5
         time.sleep(1)
         yield 'hello world', 1
+
+    ws = None
+    proc = None
 
     try:
         os.environ['RW_NO_SERVE'] = '0'
@@ -797,8 +806,8 @@ def test_inference_async_coroutine():
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
-        ws.close()
-        proc.terminate()
+        if ws: ws.close()
+        if proc: proc.terminate()
 
 @timeout(5)
 def test_inference_async_failure():
@@ -807,6 +816,9 @@ def test_inference_async_failure():
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
     def test_command(model, inputs):
         raise Exception
+
+    ws = None
+    proc = None
 
     try:
         os.environ['RW_NO_SERVE'] = '0'
@@ -826,8 +838,8 @@ def test_inference_async_failure():
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
-        ws.close()
-        proc.terminate()
+        if ws: ws.close()
+        if proc: proc.terminate()
 
 @timeout(5)
 def test_inference_async_coroutine_failure():
@@ -837,6 +849,9 @@ def test_inference_async_coroutine_failure():
     def test_command(model, inputs):
         yield 'hello'
         raise Exception
+
+    ws = None
+    proc = None
 
     try:
         os.environ['RW_NO_SERVE'] = '0'
@@ -859,8 +874,8 @@ def test_inference_async_coroutine_failure():
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
-        ws.close()
-        proc.terminate()
+        if ws: ws.close()
+        if proc: proc.terminate()
 
 @timeout(5)
 def test_inference_async_wrong_command():
@@ -870,6 +885,9 @@ def test_inference_async_wrong_command():
     def test_command(model, inputs):
         yield 'hello'
         raise Exception
+
+    ws = None
+    proc = None
 
     try:
         os.environ['RW_NO_SERVE'] = '0'
@@ -889,8 +907,8 @@ def test_inference_async_wrong_command():
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
-        ws.close()
-        proc.terminate()
+        if ws: ws.close()
+        if proc: proc.terminate()
 
 @timeout(5)
 def test_inference_async_cancel():
@@ -899,6 +917,9 @@ def test_inference_async_cancel():
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
     def test_command(model, inputs):
         time.sleep(10)
+
+    ws = None
+    proc = None
 
     try:
         os.environ['RW_NO_SERVE'] = '0'
@@ -923,8 +944,8 @@ def test_inference_async_cancel():
 
     finally:
         os.environ['RW_NO_SERVE'] = '1'
-        ws.close()
-        proc.terminate()
+        if ws: ws.close()
+        if proc: proc.terminate()
 
 def test_gpu_in_manifest_no_env_set():
 
