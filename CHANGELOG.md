@@ -6,6 +6,10 @@ The Runway Model SDK follows [semantic versioning](https://semver.org/). Be awar
 
 Until version 1.0.0, expect that minor version changes may introduce breaking changes. We will take care not to introduce new behavior, features, or breaking changes in patch releases. If you require stability and reproducible behavior you *may* pin to a version or version range of the model SDK like `runway-python>=0.2.0` or `runway-python>=0.2,<0.3`.
 
+## v.0.5.3
+
+- Log initialization time when running model.
+
 ## v.0.5.2
 
 - Do not set `default` value `vector` data type if none provided.

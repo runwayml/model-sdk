@@ -6,6 +6,7 @@ import traceback
 import inspect
 import json
 import gevent
+import time
 from multiprocessing import Process
 from six import reraise
 from flask import Flask, request, jsonify
@@ -565,12 +566,26 @@ class RunwayModel(object):
                 commands=[serialize_command(cmd) for cmd in self.commands.values()]
             )))
             return
-        print('Setting up model...')
+
+        print('Initializing model...')
+
+        initialization_start = time.time()
         try:
             self.setup_model(model_options)
         except RunwayError as err:
             err.print_exception()
             sys.exit(1)
+        initialization_duration = time.time() - initialization_start
+        if initialization_duration < 5:
+            initialization_color = '\033[92m'
+        elif initialization_duration < 10:
+            initialization_color = '\033[93m'
+        else:
+            initialization_color = '\033[91m'
+        print('Model initialized %s(%.2fs)\033[0m' % (
+            initialization_color,
+            initialization_duration,
+        ))
 
         # start the run started at millis timer even if we don't actually serve
         self.millis_run_started_at = timestamp_millis()
@@ -580,6 +595,8 @@ class RunwayModel(object):
             print('Starting model server at http://{0}:{1}...'.format(host, port))
             if debug:
                 logging.basicConfig(level=logging.DEBUG)
+            else:
+                logging.basicConfig(level=logging.INFO)
             http_server = WSGIServer((host, port), self.app, handler_class=WebSocketHandler)
             try:
                 http_server.serve_forever()
