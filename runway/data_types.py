@@ -10,6 +10,7 @@ if sys.version_info[0] < 3:
 else:
     from io import BytesIO as IO
 import numpy as np
+from scipy.spatial.distance import cdist
 from PIL import Image
 from .utils import is_url, extract_tarball, try_cast_np_scalar, download_file, get_color_palette
 from .exceptions import MissingArgumentError, InvalidArgumentError
@@ -616,11 +617,13 @@ class segmentation(BaseType):
 
     def colormap_to_segmentation(self, img):
         cmap = np.array(img)[:, :, :3]
-        seg = np.zeros(cmap.shape[:2], dtype=np.uint8)
-        for label, color in self.label_to_color.items():
-            label_id = self.label_to_id[label]
-            seg[(cmap==color).all(axis=2)] = label_id
-        return Image.fromarray(seg, 'L')
+        cmap_colors = cmap.reshape(-1, 3)
+        labels = list(self.label_to_color.keys())
+        colors = np.array([list(c) for c in self.label_to_color.values()])
+        dists = cdist(cmap_colors, colors)
+        min_idxs = np.argmin(dists, 1)
+        seg = np.array([self.label_to_id[labels[i]] for i in min_idxs]).reshape(cmap.shape[:2])
+        return Image.fromarray(seg.astype(np.uint8), 'L')
 
     def segmentation_to_colormap(self, img):
         seg = np.array(img)
