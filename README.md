@@ -94,4 +94,4 @@ Your auto-generated HTML docs should now appear in `docs/build/html`.
 
 ### Questions
 
-We have a `#model-sdk` channel in our public [Slack](https://runwayml.slack.com/) workspace that you can use to ask questions or chat with the Runway team about this Python module. Feel free to open an issue as well!
+We have a `#model-sdk` channel in our public [Slack](https://runwayml.com/joinslack) workspace that you can use to ask questions or chat with the Runway team about this Python module. Feel free to open an issue as well!
