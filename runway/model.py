@@ -7,7 +7,8 @@ import inspect
 import json
 import gevent
 import time
-from multiprocessing import Process
+import signal
+from multiprocessing import Process, Pipe
 from six import reraise
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -22,33 +23,131 @@ from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
         deserialize_data, serialize_data, generate_uuid
 from .__version__ import __version__ as model_sdk_version
 
-class RunwayModel(object):
-    """A Runway Model server. A singleton instance of this class is created automatically
-       when the runway module is imported.
-    """
 
-    def __init__(self):
-        self.millis_run_started_at = None
-        self.millis_last_command = None
-        self.options = []
-        self.setup_fn = None
-        self.commands = {}
-        self.command_fns = {}
+class InferenceServer(object):
+    def __init__(self, pipe, options, commands):
         self.jobs = {}
-        self.model = None
-        self.running_status = 'STARTING'
+        self.pipe = pipe
+        self.options = options
+        self.commands = commands
         self.app = Flask(__name__)
         self.sockets = Sockets(self.app)
-        # Support utf-8 in application/json requests and responses.
-        # We wrap this in a try/except block because, for whatever reason,
-        # `make docs` throws a TypeError that keys are unassignable to
-        # self.app.config. This DOES NOT occur when using the RunwayModel module
-        # anywere except in the docs build environment.
         try: self.app.config['JSON_AS_ASCII'] = False
         except TypeError: pass
         CORS(self.app)
         self.define_error_handlers()
         self.define_routes()
+        self.millis_last_command = None
+
+    def start(self, host='0.0.0.0', port=9000):
+        self.millis_run_started_at = timestamp_millis()
+        http_server = WSGIServer((host, port), self.app, handler_class=WebSocketHandler)
+        try:
+            http_server.serve_forever()
+        except KeyboardInterrupt:
+            print('Stopping server...')
+
+    def run_inference_sync(self, command_name, input_data):
+        job_id = generate_uuid()
+        self.pipe.send([job_id, {
+            'command': command_name,
+            'inputData': input_data
+        }])
+        while True:
+            self.refresh_jobs_state()
+            job_state = self.jobs.get(job_id, None)
+            if job_state and job_state['status'] in ['SUCCEEDED', 'FAILED']:
+                return job_state
+
+    def run_inference_async(self, command_name, input_data):
+        job_id = generate_uuid()
+        self.pipe.send([job_id, {
+            'command': command_name,
+            'inputData': input_data
+        }])
+        return job_id
+
+    def define_routes(self):
+
+        @self.app.route('/', methods=['GET'])
+        @self.app.route('/meta', methods=['GET'])
+        def manifest():
+            return jsonify(dict(
+                modelSDKVersion=model_sdk_version,
+                millisRunning=self.millis_running(),
+                millisSinceLastCommand=self.millis_since_last_command(),
+                GPU=os.environ.get('GPU') == '1',
+                options=[opt.to_dict() for opt in self.options],
+                commands=[serialize_command(cmd) for cmd in self.commands.values()]
+            ))
+
+        @self.app.route('/healthcheck', methods=['GET'])
+        def healthcheck_route():
+            return jsonify(dict(status='RUNNING'))
+
+        @self.app.route('/<command_name>', methods=['POST'])
+        @validate_post_request_body_is_json
+        def command_route(command_name):
+            try:
+                try:
+                    command = self.commands[command_name]
+                except KeyError:
+                    raise UnknownCommandError(command_name)
+                inputs = self.commands[command_name]['inputs']
+                outputs = self.commands[command_name]['outputs']
+                input_dict = get_json_or_none_if_invalid(request)
+                deserialized_inputs = deserialize_data(input_dict, inputs)
+                self.millis_last_command = timestamp_millis()
+                result = self.run_inference_sync(command_name, deserialized_inputs)
+                if result['status'] == 'SUCCEEDED':
+                    output_data = result['outputData']
+                    return jsonify(serialize_data(output_data, outputs))
+                else:
+                    return jsonify(dict(error=result['error'], traceback=result['traceback'])), 500
+
+            except RunwayError as err:
+                err.print_exception()
+                return jsonify(err.to_response()), err.code
+
+        @self.app.route('/<command_name>', methods=['GET'])
+        def usage_route(command_name):
+            try:
+                try:
+                    command = self.commands[command_name]
+                except KeyError:
+                    raise UnknownCommandError(command_name)
+                return jsonify(serialize_command(command))
+            except RunwayError as err:
+                err.print_exception()
+                return jsonify(err.to_response()), err.code
+
+        @self.sockets.route('/')
+        def inference_socket(ws):
+            current_job_id = None
+            current_job_state = None
+            while not ws.closed:
+                if current_job_id is None:
+                    message = ws.receive()
+                    try:
+                        message = json.loads(message)
+                    except:
+                        continue
+                    try:
+                        command_name = message['command']
+                        input_data = message['inputData']
+                    except KeyError:
+                        continue
+                    current_job_id = self.run_inference_async(message['command'], message['inputData'])
+                else:
+                    self.refresh_jobs_state()
+                    new_job_state = self.jobs.get(current_job_id, None)
+                    if current_job_state != new_job_state:
+                        ws.send(json.dumps(new_job_state))
+                        if new_job_state['status'] == 'SUCCEEDED':
+                            current_job_id = None
+                            current_job_state = None
+                        else:
+                            current_job_state = new_job_state
 
     def define_error_handlers(self):
 
@@ -81,175 +180,6 @@ class RunwayModel(object):
         def internal_server_error(e):
             return jsonify(dict(error='Internal server error.')), 500
 
-    def define_routes(self):
-
-        @self.app.route('/', methods=['GET'])
-        @self.app.route('/meta', methods=['GET'])
-        def manifest():
-            return jsonify(dict(
-                modelSDKVersion=model_sdk_version,
-                millisRunning=self.millis_running(),
-                millisSinceLastCommand=self.millis_since_last_command(),
-                GPU=os.environ.get('GPU') == '1',
-                options=[opt.to_dict() for opt in self.options],
-                commands=[serialize_command(cmd) for cmd in self.commands.values()]
-            ))
-
-        @self.app.route('/healthcheck', methods=['GET'])
-        def healthcheck_route():
-            return jsonify(dict(status=self.running_status))
-
-        @self.app.route('/setup', methods=['POST'])
-        @validate_post_request_body_is_json
-        def setup_route():
-            opts = get_json_or_none_if_invalid(request)
-            try:
-                self.setup_model(opts)
-                return jsonify(dict(success=True))
-            except RunwayError as err:
-                err.print_exception()
-                return jsonify(err.to_response()), err.code
-
-        @self.app.route('/setup', methods=['GET'])
-        def setup_options_route():
-            return jsonify(self.options)
-
-        @self.app.route('/<command_name>', methods=['POST'])
-        @validate_post_request_body_is_json
-        def command_route(command_name):
-            try:
-                try:
-                    command_fn = self.command_fns[command_name]
-                except KeyError:
-                    raise UnknownCommandError(command_name)
-                inputs = self.commands[command_name]['inputs']
-                outputs = self.commands[command_name]['outputs']
-                input_dict = get_json_or_none_if_invalid(request)
-                deserialized_inputs = deserialize_data(input_dict, inputs)
-                self.millis_last_command = timestamp_millis()
-                try:
-                    if inspect.isgeneratorfunction(command_fn):
-                        g = command_fn(self.model, deserialized_inputs)
-                        try:
-                            while True:
-                                output_data = next(g)
-                        except StopIteration as err:
-                            if hasattr(err, 'value') and err.value is not None:
-                                output_data = err.value
-                    else:
-                        output_data = command_fn(self.model, deserialized_inputs)
-                except Exception as err:
-                    raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
-                if type(output_data) == tuple:
-                    output_data, _ = output_data
-                return jsonify(serialize_data(output_data, outputs))
-            except RunwayError as err:
-                err.print_exception()
-                return jsonify(err.to_response()), err.code
-        
-        @self.sockets.route('/')
-        def inference_socket(ws):
-            session_id = generate_uuid()
-            self.jobs[session_id] = jobs_for_session = {}
-
-            def send_message(job_id, message_type, data={}):
-                ws.send(json.dumps(dict(type=message_type, id=job_id, **data)))
-
-            def start_inference(job_id, command_name, input_dict):
-                try:
-                    try:
-                        command_fn = self.command_fns[command_name]
-                    except KeyError:
-                        raise UnknownCommandError(command_name)
-
-                    input_spec = self.commands[command_name]['inputs']
-                    output_spec = self.commands[command_name]['outputs']
-                    deserialized_inputs = deserialize_data(input_dict, input_spec)
-                    time_start = timestamp_millis()
-
-                    def send_output(output):
-                        progress = None
-                        if type(output) == tuple:
-                            output, progress = output
-                        output = serialize_data(output, output_spec)
-                        to_send = {'outputData': output}
-                        if progress is not None:
-                            to_send['progress'] = progress
-                        send_message(job_id, 'output', to_send)
-
-                    if inspect.isgeneratorfunction(command_fn):
-                        g = command_fn(self.model, deserialized_inputs)
-                        try:
-                            while True:
-                                output = next(g)
-                                send_output(output)
-                        except StopIteration as err:
-                            if hasattr(err, 'value') and err.value is not None:
-                                send_output(err.value)
-                        except Exception as err:
-                            raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
-                    else:
-                        try:
-                            output = command_fn(self.model, deserialized_inputs)
-                            send_output(output)
-                        except Exception as err:
-                            raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
-
-                    send_message(job_id, 'succeeded', {
-                        'timeElapsed': timestamp_millis() - time_start
-                    })
-
-                except RunwayError as err:
-                    send_message(job_id, 'failed', err.to_response())
-                    err.print_exception()
-
-                except Exception as err:
-                    send_message(job_id, 'failed', {'error': 'An unknown error occurred'})
-                    print(err)
-
-            while not ws.closed:
-                message = ws.receive()
-                try:
-                    message = json.loads(message)
-                except:
-                    continue
-
-                if message['type'] == 'submit':
-                    command_name = message['command']
-                    input_dict = message['inputData']
-                    self.millis_last_command = timestamp_millis()
-                    if 'id' in message:
-                        job_id = message['id']
-                        if job_id in self.jobs:
-                            continue
-                    else:
-                        job_id = generate_uuid()
-                    job = self.jobs[job_id] = Process(target=start_inference, args=(job_id, command_name, input_dict))
-                    job.start()
-                    jobs_for_session[job_id] = job
-                    send_message(job_id, 'started')
-
-                elif message['type'] == 'cancel':
-                    command_name = message['id']
-                    if job_id in jobs_for_session:
-                        jobs_for_session[job_id].terminate()
-                        send_message(job_id, 'cancelled')
-
-            for job in jobs_for_session.values():
-                job.terminate()
-
-        @self.app.route('/<command_name>', methods=['GET'])
-        def usage_route(command_name):
-            try:
-                try:
-                    command = self.commands[command_name]
-                except KeyError:
-                    raise UnknownCommandError(command_name)
-                return jsonify(serialize_command(command))
-            except RunwayError as err:
-                err.print_exception()
-                return jsonify(err.to_response()), err.code
-
     def millis_running(self):
         if self.millis_run_started_at is None: return None
         return timestamp_millis() - self.millis_run_started_at
@@ -257,6 +187,27 @@ class RunwayModel(object):
     def millis_since_last_command(self):
         if self.millis_last_command is None: return None
         return timestamp_millis() - self.millis_last_command
+
+    def refresh_jobs_state(self):
+        if self.pipe.poll():
+            data = self.pipe.recv()
+            [job_id, new_state] = data
+            prev_state = self.jobs.get(job_id, {})
+            self.jobs[job_id] = {**prev_state, **new_state}
+
+class RunwayModel(object):
+    """A Runway Model server. A singleton instance of this class is created automatically
+       when the runway module is imported.
+    """
+
+    def __init__(self):
+        self.options = []
+        self.setup_fn = None
+        self.commands = {}
+        self.command_fns = {}
+        self.jobs = {}
+        self.model = None
+        self.running_status = 'STARTING'
 
     def setup(self, decorated_fn=None, options=None):
         """This decorator is used to wrap your own ``setup()`` (or equivalent)
@@ -453,6 +404,75 @@ class RunwayModel(object):
                 raise reraise(SetupError, SetupError(repr(err)), sys.exc_info()[2])
         self.running_status = 'RUNNING'
 
+    def start_server(self, host, port, server_pipe):
+        inference_server = InferenceServer(server_pipe, self.options, self.commands)
+        inference_server.start(host=host, port=port)
+
+    def update_job_state(self, job_id, new_state):
+        self.pipe.send([job_id, new_state])
+
+    def run_inference(self, job_id, command_name, input_dict):
+        try:
+            try:
+                command_fn = self.command_fns[command_name]
+            except KeyError:
+                raise UnknownCommandError(command_name)
+
+            self.update_job_state(job_id, {'status': 'RUNNING'})
+
+            input_spec = self.commands[command_name]['inputs']
+            output_spec = self.commands[command_name]['outputs']
+            deserialized_inputs = deserialize_data(input_dict, input_spec)
+            time_start = timestamp_millis()
+
+            def send_output(output):
+                progress = None
+                if type(output) == tuple:
+                    output, progress = output
+                output = serialize_data(output, output_spec)
+                to_send = {'outputData': output}
+                if progress is not None:
+                    to_send['progress'] = progress
+                self.update_job_state(job_id, to_send)
+
+            if inspect.isgeneratorfunction(command_fn):
+                g = command_fn(self.model, deserialized_inputs)
+                try:
+                    while True:
+                        output = next(g)
+                        send_output(output)
+                except StopIteration as err:
+                    if hasattr(err, 'value') and err.value is not None:
+                        send_output(err.value)
+                except Exception as err:
+                    raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
+            else:
+                try:
+                    output = command_fn(self.model, deserialized_inputs)
+                    send_output(output)
+                except Exception as err:
+                    raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
+
+            self.update_job_state(job_id, {
+                'status': 'SUCCEEDED',
+                'progress': 1.0,
+                'timeElapsed': timestamp_millis() - time_start
+            })
+
+        except RunwayError as err:
+            self.update_job_state(job_id, {
+                'status': 'FAILED',
+                **err.to_response()
+            })
+            err.print_exception()
+
+    def inference_loop(self):
+        while True:
+            [job_id, job_info] = self.pipe.recv()
+            command = job_info['command']
+            input_data = job_info['inputData']
+            self.run_inference(job_id, command, input_data)
+
     def run(self, host='0.0.0.0', port=9000, model_options={}, debug=False, meta=False, no_serve=False):
         """Run the model and start listening for HTTP requests on the network.
         By default, the server will run on port ``9000`` and listen on all
@@ -586,9 +606,7 @@ class RunwayModel(object):
             initialization_color,
             initialization_duration,
         ))
-
-        # start the run started at millis timer even if we don't actually serve
-        self.millis_run_started_at = timestamp_millis()
+        
         if no_serve:
             print('Not starting model server because "no_serve" directive is present.')
         else:
@@ -597,11 +615,19 @@ class RunwayModel(object):
                 logging.basicConfig(level=logging.DEBUG)
             else:
                 logging.basicConfig(level=logging.INFO)
-            http_server = WSGIServer((host, port), self.app, handler_class=WebSocketHandler)
+
+            self.pipe, server_pipe = Pipe()
+            server_proc = Process(target=self.start_server, args=(host, port, server_pipe))
+            server_proc.start()
+
+            def handle_stop_signals(signum, frame):
+                server_proc.terminate()
+                sys.exit(128 + signum)
+
+            signal.signal(signal.SIGINT, handle_stop_signals)
+            signal.signal(signal.SIGTERM, handle_stop_signals)
+
             try:
-                http_server.serve_forever()
-            except KeyboardInterrupt:
-                print('Stopping server...')
-                for jobs_for_session in self.jobs.values():
-                    for job in jobs_for_session.values():
-                        job.terminate()
+                self.inference_loop()
+            finally:
+                server_proc.terminate()

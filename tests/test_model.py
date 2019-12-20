@@ -9,6 +9,7 @@ import os
 import json
 import pytest
 import time
+import requests
 from time import sleep
 from runway.model import RunwayModel
 from runway.__version__ import __version__ as model_sdk_version
@@ -24,8 +25,11 @@ cleanup_on_sigterm()
 
 os.environ['RW_NO_SERVE'] = '1'
 
+BASE_URL = 'http://localhost:9000'
+
 # Testing Flask Applications: http://flask.pocoo.org/docs/1.0/testing/
 def test_model_setup_and_command():
+    os.environ['RW_NO_SERVE'] = '0'
 
     # use a dict to share state across function scopes. This makes up for the
     # fact that Python 2.x doesn't have support for the 'nonlocal' keyword.
@@ -86,58 +90,39 @@ def test_model_setup_and_command():
         closure['command_ran'] = True
         return 100
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
+        response = requests.get(BASE_URL + '/meta')
+        assert response.headers.get('content-type') == 'application/json'
 
-    client = get_test_client(rw)
+        manifest = response.json()
 
-    response = client.get('/meta')
-    assert response.is_json
+        # unset millisRunning as we can't reliably predict this value.
+        # testing that it is an int should be good enough.
+        assert type(manifest['millisRunning']) == int
+        manifest['millisRunning'] = None
 
-    manifest = json.loads(response.data)
+        assert manifest == expected_manifest
 
-    # unset millisRunning as we can't reliably predict this value.
-    # testing that it is an int should be good enough.
-    assert type(manifest['millisRunning']) == int
-    manifest['millisRunning'] = None
+        # check the input/output manifest for GET /test_command
+        response = requests.get(BASE_URL + '/test_command')
+        assert response.headers.get('content-type') == 'application/json'
 
-    assert manifest == expected_manifest
+        command_manifest = response.json()
+        assert command_manifest == expected_manifest['commands'][0]
 
-    # TEMPORARILY CHECK / PATH IN ADDITION TO /meta ----------------------------
-    # ... sorry for the gross dupe code ;)
-    response = client.get('/')
-    assert response.is_json
+        post_data = {
+            'input': 'test input'
+        }
+        response = requests.post(BASE_URL + '/test_command', json=post_data)
+        assert response.headers.get('content-type') == 'application/json'
+        assert response.json() == { 'output' : 100 }
 
-    manifest = json.loads(response.data)
+        # now that we've run a command lets make sure millis since last command is
+        # a number
+        manifest_after_command = requests.get(BASE_URL + '/meta').json()
+        assert type(manifest_after_command['millisSinceLastCommand']) == int
 
-    # unset millisRunning as we can't reliably predict this value.
-    # testing that it is an int should be good enough.
-    assert type(manifest['millisRunning']) == int
-    manifest['millisRunning'] = None
-
-    assert manifest == expected_manifest
-    # --------------------------------------------------------------------------
-
-    # check the input/output manifest for GET /test_command
-    response = client.get('/test_command')
-    assert response.is_json
-
-    command_manifest = json.loads(response.data)
-    assert command_manifest == expected_manifest['commands'][0]
-
-    post_data = {
-        'input': 'test input'
-    }
-    response = client.post('/test_command', json=post_data)
-    assert response.is_json
-    assert json.loads(response.data) == { 'output' : 100 }
-
-    # now that we've run a command lets make sure millis since last command is
-    # a number
-    manifest_after_command = get_manifest(client)
-    assert type(manifest_after_command['millisSinceLastCommand']) == int
-
-    assert closure['command_ran'] == True
-    assert closure['setup_ran'] == True
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_model_status():
     rw = RunwayModel()
@@ -146,15 +131,15 @@ def test_model_status():
     assert rw.running_status == 'RUNNING'
 
 def test_model_healthcheck():
+    os.environ['RW_NO_SERVE'] = '0'
     rw = RunwayModel()
-    rw.run(debug=True)
-    client = get_test_client(rw)
-    response = client.get('/healthcheck')
-    assert response.is_json
-    assert response.json == { 'status': 'RUNNING' }
+    with run_model_on_child_process(rw):
+        response = requests.get(BASE_URL + '/healthcheck')
+        assert response.json()
+        assert response.json() == { 'status': 'RUNNING' }
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_model_setup_no_arguments():
-
     # use a dict to share state across function scopes. This makes up for the
     # fact that Python 2.x doesn't have support for the 'nonlocal' keyword.
     closure = dict(setup_ran = False)
@@ -218,28 +203,9 @@ def test_model_options_missing():
         with pytest.raises(MissingOptionError):
             rw.run(debug=True)
 
-def test_setup_invalid_category():
-
-    rw = RunwayModel()
-    @rw.setup(options={'category': category(choices=['Starks', 'Lannisters'])})
-    def setup(opts):
-        pass
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.post('/setup', json={ 'category': 'Tyrells' })
-
-    assert response.status_code == 400
-    json_response = json.loads(response.data)
-    assert 'error' in json_response
-    # ensure the user is displayed an error that indicates the category option
-    # is problematic
-    assert 'Invalid argument: category' in json_response['error']
-    # ensure the user is displayed an error that indicates the problematic value
-    assert 'Tyrells' in json_response['error']
 
 def test_command_invalid_category():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
     inputs = {'category': category(choices=['Starks', 'Lannisters'])}
@@ -248,19 +214,19 @@ def test_command_invalid_category():
     def test_command(opts):
         return opts['category']
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
+        response = requests.post(BASE_URL + '/test_command', json={ 'category': 'Targaryen' })
 
-    client = get_test_client(rw)
-    response = client.post('/test_command', json={ 'category': 'Targaryen' })
+        assert response.status_code == 400
+        json_response = response.json()
+        assert 'error' in json_response
+        # ensure the user is displayed an error that indicates the category option
+        # is problematic
+        assert 'Invalid argument: category' in json_response['error']
+        # ensure the user is displayed an error that indicates the problematic value
+        assert 'Targaryen' in json_response['error']
 
-    assert response.status_code == 400
-    json_response = json.loads(response.data)
-    assert 'error' in json_response
-    # ensure the user is displayed an error that indicates the category option
-    # is problematic
-    assert 'Invalid argument: category' in json_response['error']
-    # ensure the user is displayed an error that indicates the problematic value
-    assert 'Targaryen' in json_response['error']
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_meta(capsys):
 
@@ -392,78 +358,8 @@ def test_meta(capsys):
 
     os.environ['RW_META'] = '0'
 
-def test_post_setup_json_no_mime_type():
-
-    rw = RunwayModel()
-
-    @rw.setup(options={'input': text})
-    def setup(opts):
-        pass
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.post('/setup', data='{"input": "test input"}')
-    assert response.is_json
-    assert json.loads(response.data) == { 'success': True }
-
-def test_post_setup_invalid_json_no_mime_type():
-
-    rw = RunwayModel()
-
-    @rw.setup(options={'input': text})
-    def setup(opts):
-        pass
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.post('/setup', data='{"input": test input"}')
-
-    assert response.is_json
-    assert response.status_code == 400
-
-    expect = { 'error': 'The body of all POST requests must contain JSON' }
-    assert json.loads(response.data) == expect
-
-
-def test_post_setup_json_mime_type():
-
-    rw = RunwayModel()
-
-    @rw.setup(options={'input': text})
-    def setup(opts):
-        pass
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.post('/setup', json={ 'input': 'test input' })
-    assert response.is_json
-    assert json.loads(response.data) == { 'success': True }
-
-def test_post_setup_form_encoding():
-
-    rw = RunwayModel()
-
-    @rw.setup(options={'input': text})
-    def setup(opts):
-        pass
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-
-    content_type='application/x-www-form-urlencoded'
-    response = client.post('/setup', data='input=test', content_type=content_type)
-
-    assert response.is_json
-    assert response.status_code == 400
-
-    expect = { 'error': 'The body of all POST requests must contain JSON' }
-    assert json.loads(response.data) == expect
-
 def test_post_command_json_no_mime_type():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
 
@@ -471,14 +367,14 @@ def test_post_command_json_no_mime_type():
     def times_two(model, args):
         return args['input'] * 2
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
+        response = requests.post(BASE_URL + '/times_two', data='{ "input": 5 }')
+        assert response.json() == { 'output': 10 }
 
-    client = get_test_client(rw)
-    response = client.post('/times_two', data='{ "input": 5 }')
-    assert response.is_json
-    assert json.loads(response.data) == { 'output': 10 }
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_post_command_json_mime_type():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
 
@@ -486,14 +382,14 @@ def test_post_command_json_mime_type():
     def times_two(model, args):
         return args['input'] * 2
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
+        response = requests.post(BASE_URL + '/times_two', json={ 'input': 5 })
+        assert response.json() == { 'output': 10 }
 
-    client = get_test_client(rw)
-    response = client.post('/times_two', json={ 'input': 5 })
-    assert response.is_json
-    assert json.loads(response.data) == { 'output': 10 }
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_post_command_form_encoding():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
 
@@ -501,103 +397,28 @@ def test_post_command_form_encoding():
     def times_two(model, args):
         return args['input'] * 2
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
+        content_type='application/x-www-form-urlencoded'
+        response = requests.post(BASE_URL + '/times_two', data='input=5', headers={'content-type': content_type})
+        assert response.status_code == 400
 
-    client = get_test_client(rw)
+        expect = { 'error': 'The body of all POST requests must contain JSON' }
+        assert response.json() == expect
 
-    content_type='application/x-www-form-urlencoded'
-    response = client.post('/times_two', data='input=5', content_type=content_type)
-    assert response.is_json
-    assert response.status_code == 400
-
-    expect = { 'error': 'The body of all POST requests must contain JSON' }
-    assert json.loads(response.data) == expect
-
-def test_405_method_not_allowed():
-
-    rw = RunwayModel()
-
-    @rw.setup(options={'input': text})
-    def setup(opts):
-        pass
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.put('/setup', json= { 'input': 'test input'})
-
-    assert response.is_json
-    assert response.status_code == 405
-    assert response.json == { 'error': 'Method not allowed.' }
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_404_not_found():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
+        response = requests.get(BASE_URL + '/asfd')
 
-    client = get_test_client(rw)
-    response = client.get('/asfd')
+        assert response.json()
+        assert response.status_code == 404
 
-    assert response.is_json
-    assert response.status_code == 404
-
-def test_401_unauthorized():
-
-    rw = RunwayModel()
-
-    @rw.app.route('/test/unauthorized')
-    def unauthorized():
-        abort(401)
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.get('/test/unauthorized')
-
-    assert response.is_json
-    assert response.status_code == 401
-
-    expect = { 'error': 'Unauthorized (well... really unauthenticated but hey I didn\'t write the spec).' }
-    assert response.json == expect
-
-def test_403_forbidden():
-
-    rw = RunwayModel()
-
-    @rw.app.route('/test/forbidden')
-    def unauthorized():
-        abort(403)
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.get('/test/forbidden')
-
-    assert response.is_json
-    assert response.status_code == 403
-
-    expect = { 'error': 'Forbidden.' }
-    assert response.json == expect
-
-def test_500_internal_server_error():
-
-    rw = RunwayModel()
-
-    @rw.app.route('/test/internal_server_error')
-    def unauthorized():
-        abort(500)
-
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-    response = client.get('/test/internal_server_error')
-
-    assert response.is_json
-    assert response.status_code == 500
-
-    expect = { 'error': 'Internal server error.' }
-    assert response.json == expect
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_setup_error_setup_no_args():
 
@@ -625,35 +446,42 @@ def test_setup_error_setup_with_args():
             rw.run(debug=True)
 
 def test_inference_error():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
-    client = get_test_client(rw)
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
     def test_command(model, inputs):
         raise Exception('test exception, thrown from inside a wrapped command() function')
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
+        print('hello')
+        response = requests.post(BASE_URL + '/test_command', json={ 'input': 5 })
+        print('hi')
+        assert response.json()
+        assert 'InferenceError' in str(response.text)
 
-    response = client.post('test_command', json={ 'input': 5 })
-    assert response.is_json
-    assert 'InferenceError' in str(response.data)
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_millis_since_run_increases_over_time():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
-    client = get_test_client(rw)
-    rw.run(debug=True)
 
-    last_time = get_manifest(client)['millisRunning']
-    assert type(last_time) == int
-    for i in range(3):
-        sleep(0.01)
-        millis_running = get_manifest(client)['millisRunning']
-        assert millis_running > last_time
-        last_time = millis_running
+    with run_model_on_child_process(rw):
+
+        last_time = requests.get(BASE_URL + '/meta').json()['millisRunning']
+        assert type(last_time) == int
+        for i in range(3):
+            sleep(0.01)
+            millis_running = requests.get(BASE_URL + '/meta').json()['millisRunning']
+            assert millis_running > last_time
+            last_time = millis_running
+
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_millis_since_last_command_resets_each_command():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
 
@@ -661,24 +489,26 @@ def test_millis_since_last_command_resets_each_command():
     def test_command(model, inputs):
         pass
 
-    rw.run(debug=True)
+    with run_model_on_child_process(rw):
 
-    client = get_test_client(rw)
+        assert requests.get(BASE_URL + '/meta').json()['millisSinceLastCommand'] is None
+        requests.post(BASE_URL + '/test_command', json={ 'input': 5 })
 
-    assert get_manifest(client)['millisSinceLastCommand'] is None
-    client.post('test_command', json={ 'input': 5 })
+        first_time = requests.get(BASE_URL + '/meta').json()['millisSinceLastCommand']
+        assert type(first_time) == int
 
-    first_time = get_manifest(client)['millisSinceLastCommand']
-    assert type(first_time) == int
+        for i in range(5):
+            sleep(0.02)
+            millis_since_last_command = requests.get(BASE_URL + '/meta').json()['millisSinceLastCommand']
+            assert millis_since_last_command > first_time
+            requests.post(BASE_URL + '/test_command', json={ 'input': 5 })
+            assert requests.get(BASE_URL + '/meta').json()['millisSinceLastCommand'] < millis_since_last_command
 
-    for i in range(5):
-        sleep(0.02)
-        millis_since_last_command = get_manifest(client)['millisSinceLastCommand']
-        assert millis_since_last_command > first_time
-        client.post('test_command', json={ 'input': 5 })
-        assert get_manifest(client)['millisSinceLastCommand'] < millis_since_last_command
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_inference_coroutine():
+    os.environ['RW_NO_SERVE'] = '0'
+
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -687,15 +517,14 @@ def test_inference_coroutine():
         time.sleep(1)
         yield 'hello world'
 
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
-
-    response = client.post('/test_command', json={'input': 5})
-    assert response.json['output'] == 'hello world'
+    with run_model_on_child_process(rw):
+        response = requests.post(BASE_URL + '/test_command', json={'input': 5})
+        assert response.json()['output'] == 'hello world'
 
 @timeout(5)
 def test_inference_async():
+    os.environ['RW_NO_SERVE'] = '0'
+
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -703,72 +532,22 @@ def test_inference_async():
         time.sleep(0.5)
         yield 'hello world'
 
-    ws = None
-    proc = None
-
-    try:
-        os.environ['RW_NO_SERVE'] = '0'
-        proc = Process(target=rw.run)
-        proc.start()
-
-        time.sleep(0.5)
-        ws = get_test_ws_client(rw)
-
-        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+    with run_model_on_child_process(rw), test_ws_client() as ws:
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'started'
+        assert response['status'] == 'RUNNING'
 
         response = json.loads(ws.recv())
+        assert response['status'] == 'RUNNING'
         assert response['outputData']['output'] == 'hello world'
 
-        response = json.loads(ws.recv())
-        assert response['type'] == 'succeeded'
-
-    finally:
-        os.environ['RW_NO_SERVE'] = '1'
-        if ws: ws.close()
-        if proc: proc.terminate()
-
-@timeout(5)
-def test_inference_async_provide_id():
-    rw = RunwayModel()
-
-    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
-    def test_command(model, inputs):
-        time.sleep(0.5)
-        yield 'hello world'
-
-    ws = None
-    proc = None
-
-    try:
-        os.environ['RW_NO_SERVE'] = '0'
-        proc = Process(target=rw.run)
-        proc.start()
-
-        time.sleep(0.5)
-        ws = get_test_ws_client(rw)
-
-        ws.send(create_ws_message('submit', dict(command='test_command', id='test', inputData={'input': 5})))
-
-        response = json.loads(ws.recv())
-        assert response['type'] == 'started'
-        assert response['id'] == 'test'
-
-        response = json.loads(ws.recv())
-        assert response['outputData']['output'] == 'hello world'
-
-        response = json.loads(ws.recv())
-        assert response['type'] == 'succeeded'
-
-    finally:
-        os.environ['RW_NO_SERVE'] = '1'
-        if ws: ws.close()
-        if proc: proc.terminate()
-
+    os.environ['RW_NO_SERVE'] = '1'
+  
 @timeout(5)
 def test_inference_async_coroutine():
+    os.environ['RW_NO_SERVE'] = '0'
+
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -777,21 +556,11 @@ def test_inference_async_coroutine():
         time.sleep(1)
         yield 'hello world', 1
 
-    ws = None
-    proc = None
-
-    try:
-        os.environ['RW_NO_SERVE'] = '0'
-        proc = Process(target=rw.run)
-        proc.start()
-
-        time.sleep(0.5)
-        ws = get_test_ws_client(rw)
-
-        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+    with run_model_on_child_process(rw), test_ws_client() as ws:
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'started'
+        assert response['status'] == 'RUNNING'
 
         response = json.loads(ws.recv())
         assert response['outputData']['output'] == 'hello'
@@ -801,48 +570,34 @@ def test_inference_async_coroutine():
         assert response['outputData']['output'] == 'hello world'
         assert response['progress'] == 1
 
-        response = json.loads(ws.recv())
-        assert response['type'] == 'succeeded'
-
-    finally:
-        os.environ['RW_NO_SERVE'] = '1'
-        if ws: ws.close()
-        if proc: proc.terminate()
+    os.environ['RW_NO_SERVE'] = '1'
 
 @timeout(5)
 def test_inference_async_failure():
+    os.environ['RW_NO_SERVE'] = '0'
+
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
     def test_command(model, inputs):
         raise Exception
 
-    ws = None
-    proc = None
-
-    try:
-        os.environ['RW_NO_SERVE'] = '0'
-        proc = Process(target=rw.run)
-        proc.start()
-
-        time.sleep(0.5)
-        ws = get_test_ws_client(rw)
-
-        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+    with run_model_on_child_process(rw), test_ws_client() as ws:
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'started'
+        assert response['status'] == 'RUNNING'
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'failed'
+        assert response['status'] == 'FAILED'
 
-    finally:
-        os.environ['RW_NO_SERVE'] = '1'
-        if ws: ws.close()
-        if proc: proc.terminate()
+    os.environ['RW_NO_SERVE'] = '1'
+
 
 @timeout(5)
 def test_inference_async_coroutine_failure():
+    os.environ['RW_NO_SERVE'] = '0'
+
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -850,35 +605,24 @@ def test_inference_async_coroutine_failure():
         yield 'hello'
         raise Exception
 
-    ws = None
-    proc = None
-
-    try:
-        os.environ['RW_NO_SERVE'] = '0'
-        proc = Process(target=rw.run)
-        proc.start()
-
-        time.sleep(0.5)
-        ws = get_test_ws_client(rw)
-
-        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
+    with run_model_on_child_process(rw), test_ws_client() as ws:
+        ws.send(json.dumps(dict(command='test_command', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'started'
+        assert response['status'] == 'RUNNING'
 
         response = json.loads(ws.recv())
         assert response['outputData']['output'] == 'hello'
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'failed'
+        assert response['status'] == 'FAILED'
 
-    finally:
-        os.environ['RW_NO_SERVE'] = '1'
-        if ws: ws.close()
-        if proc: proc.terminate()
+    os.environ['RW_NO_SERVE'] = '1'
 
 @timeout(5)
 def test_inference_async_wrong_command():
+    os.environ['RW_NO_SERVE'] = '0'
+
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -889,92 +633,46 @@ def test_inference_async_wrong_command():
     ws = None
     proc = None
 
-    try:
-        os.environ['RW_NO_SERVE'] = '0'
-        proc = Process(target=rw.run)
-        proc.start()
-
-        time.sleep(0.5)
-        ws = get_test_ws_client(rw)
-
-        ws.send(create_ws_message('submit', dict(command='test_command1', inputData={'input': 5})))
+    with run_model_on_child_process(rw), test_ws_client() as ws:
+        ws.send(json.dumps(dict(command='test_command1', inputData={'input': 5})))
 
         response = json.loads(ws.recv())
-        assert response['type'] == 'started'
+        assert response['status'] == 'FAILED'
 
-        response = json.loads(ws.recv())
-        assert response['type'] == 'failed'
-
-    finally:
-        os.environ['RW_NO_SERVE'] = '1'
-        if ws: ws.close()
-        if proc: proc.terminate()
-
-@timeout(5)
-def test_inference_async_cancel():
-    rw = RunwayModel()
-
-    @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
-    def test_command(model, inputs):
-        time.sleep(10)
-
-    ws = None
-    proc = None
-
-    try:
-        os.environ['RW_NO_SERVE'] = '0'
-        proc = Process(target=rw.run)
-        proc.start()
-
-        time.sleep(0.5)
-        ws = get_test_ws_client(rw)
-
-        ws.send(create_ws_message('submit', dict(command='test_command', inputData={'input': 5})))
-
-        time.sleep(0.5)
-        response = json.loads(ws.recv())
-        assert response['type'] == 'started'
-        job_id = response['id']
-
-        ws.send(create_ws_message('cancel', dict(id=job_id)))
-
-        time.sleep(0.5)
-        response = json.loads(ws.recv())
-        assert response['type'] == 'cancelled'
-
-    finally:
-        os.environ['RW_NO_SERVE'] = '1'
-        if ws: ws.close()
-        if proc: proc.terminate()
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_gpu_in_manifest_no_env_set():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
 
     if os.environ.get('GPU') is not None:
         del os.environ['GPU']
 
-    assert get_manifest(client)['GPU'] == False
+    with run_model_on_child_process(rw):
+        assert requests.get(BASE_URL + '/meta').json()['GPU'] == False
+
+    os.environ['RW_NO_SERVE'] = '1'
 
 def test_gpu_in_manifest_gpu_env_true():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
 
     os.environ['GPU'] = '1'
-    assert get_manifest(client)['GPU'] == True
+    with run_model_on_child_process(rw):
+        assert requests.get(BASE_URL + '/meta').json()['GPU'] == True
+
+    os.environ['RW_NO_SERVE'] = '1'
+
 
 def test_gpu_in_manifest_gpu_env_false():
+    os.environ['RW_NO_SERVE'] = '0'
 
     rw = RunwayModel()
-    rw.run(debug=True)
-
-    client = get_test_client(rw)
 
     os.environ['GPU'] = '0'
-    assert get_manifest(client)['GPU'] == False
+    with run_model_on_child_process(rw):
+        assert requests.get(BASE_URL + '/meta').json()['GPU'] == False
+
+    os.environ['RW_NO_SERVE'] = '1'
