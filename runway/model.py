@@ -585,7 +585,8 @@ class RunwayModel(object):
         if meta:
             print(json.dumps(dict(
                 options=[opt.to_dict() for opt in self.options],
-                commands=[serialize_command(cmd) for cmd in self.commands.values()]
+                commands=[serialize_command(cmd) for cmd in self.commands.values()],
+                modelSDKVersion=model_sdk_version
             )))
             return
 

@@ -256,6 +256,7 @@ def test_meta(capsys):
         pass
 
     expected_manifest = {
+        'modelSDKVersion': model_sdk_version,
         'options': [
             {
                 'minLength': 0,
@@ -344,10 +345,11 @@ def test_meta(capsys):
     # trying to get this comparison working without relying on a lib, but
     # ultimately it was just wasting my time.
     diff = DeepDiff(manifest, expected_manifest, ignore_order=True)
-    assert len(diff.keys()) == 0
-    assert std.err == ''
-
-    os.environ['RW_META'] = '0'
+    try:
+        assert len(diff.keys()) == 0
+        assert std.err == ''
+    finally:
+        os.environ['RW_META'] = '0'
 
 def test_post_command_json_no_mime_type():
     rw = RunwayModel()
