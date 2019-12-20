@@ -107,7 +107,7 @@ As a model porter you must decide which of the options that are configurable by 
 
 ## UI Components
 
-Only a limited set of all [Data Types](data_types.html) generate UI components at this time. We are working quickly to render all data types in the app, but we ask for your patience until this task is complete. If you have any questions about data types, UI components, or the Model SDK in general feel free to bring them up in the `#model-sdk` channel in [the public Runway slack](https://runwayml.slack.com).
+Only a limited set of all [Data Types](data_types.html) generate UI components at this time. We are working quickly to render all data types in the app, but we ask for your patience until this task is complete. If you have any questions about data types, UI components, or the Model SDK in general feel free to bring them up in the `#model-sdk` channel in [the public Runway slack](https://runwayml.com/joinslack).
 
 ### Support/Compatibility Matrix
 
