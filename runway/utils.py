@@ -10,6 +10,7 @@ import gzip
 import datetime
 import colorcet
 import uuid
+from unidecode import unidecode
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
 else:
@@ -60,7 +61,10 @@ def download_file(url):
 
 def extract_tarball(path):
     extracted_dir = tempfile.mkdtemp()
-    with tarfile.open(path, 'r:*') as tar:
+    with tarfile.open(path, 'r:*', errors='ignore') as tar:
+        def encode_ascii(member):
+            member.name = unidecode(member.name)
+        [encode_ascii(member) for member in tar.getmembers()]
         tar.extractall(path=extracted_dir)
     return extracted_dir
 
