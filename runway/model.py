@@ -191,9 +191,11 @@ class InferenceServer(object):
     def refresh_jobs_state(self):
         if self.pipe.poll():
             data = self.pipe.recv()
-            [job_id, new_state] = data
-            prev_state = self.jobs.get(job_id, {})
-            self.jobs[job_id] = {**prev_state, **new_state}
+            [job_id, state_updates] = data
+            new_state = self.jobs.get(job_id, {}).copy()
+            for k, v in state_updates.items():
+                new_state[k] = v
+            self.jobs[job_id] = new_state
 
 class RunwayModel(object):
     """A Runway Model server. A singleton instance of this class is created automatically
