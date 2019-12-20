@@ -103,7 +103,7 @@ class InferenceServer(object):
                     output_data = result['outputData']
                     return jsonify(serialize_data(output_data, outputs))
                 else:
-                    return jsonify(dict(error=result['error'], traceback=result['traceback'])), 500
+                    return jsonify(dict(error=result['error'])), 500
 
             except RunwayError as err:
                 err.print_exception()
@@ -464,7 +464,7 @@ class RunwayModel(object):
         except RunwayError as err:
             self.update_job_state(job_id, {
                 'status': 'FAILED',
-                **err.to_response()
+                'error': repr(err)
             })
             err.print_exception()
 

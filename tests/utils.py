@@ -37,6 +37,7 @@ class run_model_on_child_process():
         self.startup_delay = startup_delay
 
     def __enter__(self):
+        os.environ['RW_NO_SERVE'] = '0'
         self.proc = Process(target=self.model.run, args=self.args, kwargs=self.kwargs)
         self.proc.start()
         time.sleep(self.startup_delay)
@@ -45,6 +46,7 @@ class run_model_on_child_process():
     def __exit__(self, *args):
         if self.proc:
             self.proc.terminate()
+        os.environ['RW_NO_SERVE'] = '1'
 
 class test_ws_client():
     def __init__(self):

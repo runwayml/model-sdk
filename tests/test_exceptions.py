@@ -17,9 +17,7 @@ def check_to_response_method(err):
     response = err.to_response()
     assert type(response) == dict
     assert 'error' in response
-    assert 'traceback' in response
     assert len(response['error']) > 0
-    assert len(response['traceback']) > 0
 
 def check_code_and_error(error_class,
                          expected_code,

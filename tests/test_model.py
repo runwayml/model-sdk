@@ -29,8 +29,7 @@ BASE_URL = 'http://localhost:9000'
 
 # Testing Flask Applications: http://flask.pocoo.org/docs/1.0/testing/
 def test_model_setup_and_command():
-    os.environ['RW_NO_SERVE'] = '0'
-
+    
     # use a dict to share state across function scopes. This makes up for the
     # fact that Python 2.x doesn't have support for the 'nonlocal' keyword.
     closure = dict(setup_ran = False, command_ran = False)
@@ -122,8 +121,6 @@ def test_model_setup_and_command():
         manifest_after_command = requests.get(BASE_URL + '/meta').json()
         assert type(manifest_after_command['millisSinceLastCommand']) == int
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_model_status():
     rw = RunwayModel()
     assert rw.running_status == 'STARTING'
@@ -131,13 +128,11 @@ def test_model_status():
     assert rw.running_status == 'RUNNING'
 
 def test_model_healthcheck():
-    os.environ['RW_NO_SERVE'] = '0'
     rw = RunwayModel()
     with run_model_on_child_process(rw):
         response = requests.get(BASE_URL + '/healthcheck')
         assert response.json()
         assert response.json() == { 'status': 'RUNNING' }
-    os.environ['RW_NO_SERVE'] = '1'
 
 def test_model_setup_no_arguments():
     # use a dict to share state across function scopes. This makes up for the
@@ -205,8 +200,6 @@ def test_model_options_missing():
 
 
 def test_command_invalid_category():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
     inputs = {'category': category(choices=['Starks', 'Lannisters'])}
     outputs = {'reflect': text }
@@ -225,8 +218,6 @@ def test_command_invalid_category():
         assert 'Invalid argument: category' in json_response['error']
         # ensure the user is displayed an error that indicates the problematic value
         assert 'Targaryen' in json_response['error']
-
-    os.environ['RW_NO_SERVE'] = '1'
 
 def test_meta(capsys):
 
@@ -359,8 +350,6 @@ def test_meta(capsys):
     os.environ['RW_META'] = '0'
 
 def test_post_command_json_no_mime_type():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
@@ -371,11 +360,7 @@ def test_post_command_json_no_mime_type():
         response = requests.post(BASE_URL + '/times_two', data='{ "input": 5 }')
         assert response.json() == { 'output': 10 }
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_post_command_json_mime_type():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
@@ -386,11 +371,7 @@ def test_post_command_json_mime_type():
         response = requests.post(BASE_URL + '/times_two', json={ 'input': 5 })
         assert response.json() == { 'output': 10 }
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_post_command_form_encoding():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
@@ -405,11 +386,7 @@ def test_post_command_form_encoding():
         expect = { 'error': 'The body of all POST requests must contain JSON' }
         assert response.json() == expect
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_404_not_found():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     with run_model_on_child_process(rw):
@@ -418,10 +395,7 @@ def test_404_not_found():
         assert response.json()
         assert response.status_code == 404
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_setup_error_setup_no_args():
-
     rw = RunwayModel()
 
     @rw.setup
@@ -446,8 +420,6 @@ def test_setup_error_setup_with_args():
             rw.run(debug=True)
 
 def test_inference_error():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -455,17 +427,11 @@ def test_inference_error():
         raise Exception('test exception, thrown from inside a wrapped command() function')
 
     with run_model_on_child_process(rw):
-        print('hello')
         response = requests.post(BASE_URL + '/test_command', json={ 'input': 5 })
-        print('hi')
         assert response.json()
         assert 'InferenceError' in str(response.text)
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_millis_since_run_increases_over_time():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     with run_model_on_child_process(rw):
@@ -478,11 +444,7 @@ def test_millis_since_run_increases_over_time():
             assert millis_running > last_time
             last_time = millis_running
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_millis_since_last_command_resets_each_command():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -504,11 +466,7 @@ def test_millis_since_last_command_resets_each_command():
             requests.post(BASE_URL + '/test_command', json={ 'input': 5 })
             assert requests.get(BASE_URL + '/meta').json()['millisSinceLastCommand'] < millis_since_last_command
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_inference_coroutine():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -523,8 +481,6 @@ def test_inference_coroutine():
 
 @timeout(5)
 def test_inference_async():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -541,13 +497,9 @@ def test_inference_async():
         response = json.loads(ws.recv())
         assert response['status'] == 'RUNNING'
         assert response['outputData']['output'] == 'hello world'
-
-    os.environ['RW_NO_SERVE'] = '1'
   
 @timeout(5)
 def test_inference_async_coroutine():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -570,12 +522,8 @@ def test_inference_async_coroutine():
         assert response['outputData']['output'] == 'hello world'
         assert response['progress'] == 1
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 @timeout(5)
 def test_inference_async_failure():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -591,13 +539,8 @@ def test_inference_async_failure():
         response = json.loads(ws.recv())
         assert response['status'] == 'FAILED'
 
-    os.environ['RW_NO_SERVE'] = '1'
-
-
 @timeout(5)
 def test_inference_async_coroutine_failure():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -617,12 +560,8 @@ def test_inference_async_coroutine_failure():
         response = json.loads(ws.recv())
         assert response['status'] == 'FAILED'
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 @timeout(5)
 def test_inference_async_wrong_command():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     @rw.command('test_command', inputs={ 'input': number }, outputs = { 'output': text })
@@ -639,11 +578,7 @@ def test_inference_async_wrong_command():
         response = json.loads(ws.recv())
         assert response['status'] == 'FAILED'
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_gpu_in_manifest_no_env_set():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     if os.environ.get('GPU') is not None:
@@ -652,27 +587,17 @@ def test_gpu_in_manifest_no_env_set():
     with run_model_on_child_process(rw):
         assert requests.get(BASE_URL + '/meta').json()['GPU'] == False
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 def test_gpu_in_manifest_gpu_env_true():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     os.environ['GPU'] = '1'
     with run_model_on_child_process(rw):
         assert requests.get(BASE_URL + '/meta').json()['GPU'] == True
 
-    os.environ['RW_NO_SERVE'] = '1'
-
 
 def test_gpu_in_manifest_gpu_env_false():
-    os.environ['RW_NO_SERVE'] = '0'
-
     rw = RunwayModel()
 
     os.environ['GPU'] = '0'
     with run_model_on_child_process(rw):
         assert requests.get(BASE_URL + '/meta').json()['GPU'] == False
-
-    os.environ['RW_NO_SERVE'] = '1'
