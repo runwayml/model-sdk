@@ -38,6 +38,7 @@ def test_model_setup_and_command():
         'modelSDKVersion': model_sdk_version,
         'millisRunning': None,
         'millisSinceLastCommand': None,
+        'averageInferenceTime': None,
         'GPU': os.environ.get('GPU', False),
         'options': [{
             'type': 'category',
@@ -603,3 +604,16 @@ def test_gpu_in_manifest_gpu_env_false():
     os.environ['GPU'] = '0'
     with run_model_on_child_process(rw):
         assert requests.get(BASE_URL + '/meta').json()['GPU'] == False
+
+def test_average_inference_time_in_manifest():
+    rw = RunwayModel()
+
+    @rw.command('sleep', inputs={ 'input': number }, outputs={ 'output': number })
+    def sleep_command(model, args):
+        return time.sleep(1)
+
+    with run_model_on_child_process(rw):
+        requests.post(BASE_URL + '/sleep', json={'input': 5})
+        requests.post(BASE_URL + '/sleep', json={'input': 5})
+        requests.post(BASE_URL + '/sleep', json={'input': 5})
+        assert round(requests.get(BASE_URL + '/meta').json()['averageInferenceTime'] / 1000) == 1.0

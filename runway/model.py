@@ -38,6 +38,8 @@ class InferenceServer(object):
         self.define_error_handlers()
         self.define_routes()
         self.millis_last_command = None
+        self.inference_count = 0
+        self.inference_time_sum = 0
 
     def start(self, host='0.0.0.0', port=9000):
         self.millis_run_started_at = timestamp_millis()
@@ -78,7 +80,8 @@ class InferenceServer(object):
                 millisSinceLastCommand=self.millis_since_last_command(),
                 GPU=os.environ.get('GPU') == '1',
                 options=[opt.to_dict() for opt in self.options],
-                commands=[serialize_command(cmd) for cmd in self.commands.values()]
+                commands=[serialize_command(cmd) for cmd in self.commands.values()],
+                averageInferenceTime=(self.inference_time_sum / self.inference_count) if self.inference_count > 0 else None
             ))
 
         @self.app.route('/healthcheck', methods=['GET'])
@@ -97,8 +100,10 @@ class InferenceServer(object):
                 outputs = self.commands[command_name]['outputs']
                 input_dict = get_json_or_none_if_invalid(request)
                 deserialized_inputs = deserialize_data(input_dict, inputs)
-                self.millis_last_command = timestamp_millis()
+                self.millis_last_command = inference_start = timestamp_millis()
                 result = self.run_inference_sync(command_name, deserialized_inputs)
+                self.inference_time_sum += timestamp_millis() - inference_start
+                self.inference_count += 1
                 if result['status'] == 'SUCCEEDED':
                     output_data = result['outputData']
                     return jsonify(serialize_data(output_data, outputs))
@@ -144,6 +149,9 @@ class InferenceServer(object):
                     if current_job_state != new_job_state:
                         ws.send(json.dumps(new_job_state))
                         if new_job_state['status'] == 'SUCCEEDED':
+                            if 'timeElapsed' in new_job_state:
+                                self.inference_count += 1
+                                self.inference_time_sum += new_job_state['timElapsed']
                             current_job_id = None
                             current_job_state = None
                         else:
