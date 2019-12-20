@@ -256,7 +256,7 @@ def test_meta(capsys):
         pass
 
     expected_manifest = {
-        'modelSDKVersion': model_sdk_version,
+        'modelSDKVersion': model_sdk_version if sys.version_info[0] >= 3 else unicode(model_sdk_version),
         'options': [
             {
                 'minLength': 0,
