@@ -59,7 +59,10 @@ def is_url(path):
 
 def get_file_suffix_from_url(url):
     suffix_parts = os.path.basename(urlparse(url).path).split('.')[1:]
-    return '.%s' % '.'.join(suffix_parts)
+    if len(suffix_parts) == 0:
+        return ''
+    else:
+        return '.%s' % '.'.join(suffix_parts)
 
 
 def get_download_chunks(total_size, chunk_size=1e7):
