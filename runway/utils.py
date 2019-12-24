@@ -72,7 +72,7 @@ def get_download_chunks(total_size, chunk_size=1e7):
 
 
 def download_worker(url, queue, filename):
-    http = urllib3.PoolManager(1, cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+    http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
     while True:
         try:
             rng = queue.get_nowait()
@@ -89,7 +89,7 @@ def download_worker(url, queue, filename):
 def download_file(url, n_processes=16):
     tmp = tempfile.NamedTemporaryFile(suffix=get_file_suffix_from_url(url), delete=False)
     filename = tmp.name
-    http = urllib3.PoolManager()
+    http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
     initial_response = http.request('HEAD', url)
     enable_segmented_download = 'accept-ranges' in initial_response.headers and \
         'content-length' in initial_response.headers and \
