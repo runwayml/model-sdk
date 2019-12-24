@@ -2,7 +2,6 @@ import tempfile
 import tarfile
 import inspect
 import re
-import wget
 import os
 import functools
 import sys
@@ -10,10 +9,15 @@ import gzip
 import datetime
 import colorcet
 import uuid
+import urllib3
+import multiprocessing
+import certifi
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
+    from urlparse import urlparse
 else:
     from io import BytesIO as IO
+    from urllib.parse import urlparse
 import numpy as np
 from flask import after_this_request, request, jsonify
 
@@ -53,9 +57,61 @@ def is_url(path):
     return re.match(URL_REGEX, path)
 
 
-def download_file(url):
-    download_dir = tempfile.mkdtemp()
-    return wget.download(url, out=download_dir)
+def get_file_suffix_from_url(url):
+    suffix_parts = os.path.basename(urlparse(url).path).split('.')[1:]
+    if len(suffix_parts) == 0:
+        return ''
+    else:
+        return '.%s' % '.'.join(suffix_parts)
+
+
+def get_download_chunks(total_size, chunk_size=1e7):
+    n_chunks = max(1, total_size // chunk_size)
+    for i in range(n_chunks):
+        start = (total_size // n_chunks) * i
+        end = (total_size // n_chunks) * (i + 1) - 1
+        if i == n_chunks - 1: end = max(end, total_size)
+        yield [start, end]
+
+
+def download_worker(url, queue, filename):
+    http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+    while True:
+        try:
+            rng = queue.get_nowait()
+        except:
+            break
+        [start, end] = rng
+        resp = http.request('GET', url, headers={'Range': 'bytes=' + str(start) + '-' + str(end)})
+        f = open(filename, 'r+b')
+        f.seek(start)
+        f.write(resp.data)
+        f.close()
+
+
+def download_file(url, n_processes=16):
+    tmp = tempfile.NamedTemporaryFile(suffix=get_file_suffix_from_url(url), delete=False)
+    filename = tmp.name
+    http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+    initial_response = http.request('HEAD', url)
+    enable_segmented_download = 'accept-ranges' in initial_response.headers and \
+        'content-length' in initial_response.headers and \
+        initial_response.headers['accept-ranges'] == 'bytes' and \
+        initial_response.headers['content-length'] is not None
+    if enable_segmented_download:
+        content_length = int(initial_response.headers['content-length'])
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        [queue.put(chunk) for chunk in get_download_chunks(content_length)]
+        processes = [multiprocessing.Process(target=download_worker, args=(url, queue, filename)) for _ in range(n_processes)]
+        [process.start() for process in processes]
+        [process.join() for process in processes]
+    else:
+        resp = http.request('GET', url)
+        f = open(filename, 'wb')
+        f.write(resp.data)
+        f.close()
+    return filename
 
 
 def extract_tarball(path):
