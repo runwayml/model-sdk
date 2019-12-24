@@ -66,7 +66,7 @@ def get_file_suffix_from_url(url):
 
 
 def get_download_chunks(total_size, chunk_size=1e7):
-    n_chunks = max(1, total_size // chunk_size)
+    n_chunks = max(1, int(total_size // chunk_size))
     for i in range(n_chunks):
         start = (total_size // n_chunks) * i
         end = (total_size // n_chunks) * (i + 1) - 1
