@@ -390,12 +390,12 @@ class number(BaseType):
     :type step: float, optional
     """
 
-    def __init__(self, description=None, default=0, step=None, min=None, max=None):
+    def __init__(self, description=None, default=None, step=None, min=None, max=None):
         super(number, self).__init__('number', description=description)
-        self.default = default
         self.min = min
         self.max = max
         self.step = step
+        self.default = default or self.min or self.max or 0
 
     def deserialize(self, value):
         return value
