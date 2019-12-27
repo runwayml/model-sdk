@@ -8,3 +8,4 @@ colorcet>=2.0.1
 Flask-Sockets==0.2.1
 scipy>=1.2.1
 urllib3[secure]>=1.25.7
+flask-compress>=1.3.1

@@ -9,15 +9,21 @@ import os
 import json
 import pytest
 import time
+import gzip
 from time import sleep
 from runway.model import RunwayModel
 from runway.__version__ import __version__ as model_sdk_version
 from runway.data_types import category, text, number, array, image, vector, file, any as any_type
 from runway.exceptions import *
+from runway.utils import gzip_decompress, gzip_compress
 from utils import *
 from deepdiff import DeepDiff
 from flask import abort
 from multiprocessing import Process
+if sys.version_info[0] < 3:
+    from cStringIO import StringIO as IO
+else:
+    from io import BytesIO as IO
 
 from pytest_cov.embed import cleanup_on_sigterm
 cleanup_on_sigterm()
@@ -492,6 +498,46 @@ def test_post_command_json_mime_type():
     response = client.post('/times_two', json={ 'input': 5 })
     assert response.is_json
     assert json.loads(response.data) == { 'output': 10 }
+
+def test_post_command_json_mime_type_with_gzip():
+
+    rw = RunwayModel()
+
+    @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
+    def times_two(model, args):
+        return args['input'] * 2
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    headers = {
+        'content-type': 'application/json',
+        'content-encoding': 'gzip'
+    }
+    response = client.post('/times_two', data=gzip_compress(json.dumps({ 'input': 5 }).encode('utf-8')), headers=headers)
+    assert response.is_json
+    assert json.loads(response.data) == { 'output': 10 }
+
+def test_post_command_json_mime_type_with_gzip_response():
+
+    rw = RunwayModel()
+    rw.app.config['COMPRESS_MIN_SIZE'] = 0
+
+    @rw.command('times_two', inputs={ 'input': number }, outputs={ 'output': number })
+    def times_two(model, args):
+        return args['input'] * 2
+
+    rw.run(debug=True)
+
+    client = get_test_client(rw)
+    response = client.post('/times_two', 
+        json={ 'input': 5 },
+        headers={
+            'accept-encoding': 'gzip'
+        }
+    )
+    assert response.is_json
+    assert json.loads(gzip_decompress(response.data)) == { 'output': 10 }
 
 def test_post_command_form_encoding():
 

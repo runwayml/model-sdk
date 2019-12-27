@@ -12,6 +12,7 @@ import uuid
 import urllib3
 import multiprocessing
 import certifi
+import json
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
     from urlparse import urlparse
@@ -42,7 +43,12 @@ def validate_post_request_body_is_json(f):
     return wrapped
 
 def get_json_or_none_if_invalid(request):
-    return request.get_json(force=True, silent=True)
+    if request.headers.get('content-encoding') == 'gzip' and request.headers.get('content-type') == 'application/json':
+        data = request.get_data()
+        decompressed = gzip_decompress(data)
+        return json.loads(decompressed)
+    else:
+        return request.get_json(force=True, silent=True)
 
 def serialize_command(cmd):
     ret = {}
@@ -119,6 +125,14 @@ def extract_tarball(path):
     with tarfile.open(path, 'r:*') as tar:
         tar.extractall(path=extracted_dir)
     return extracted_dir
+
+
+def gzip_compress(data):
+    compressed_data = IO()
+    g = gzip.GzipFile(fileobj=compressed_data, mode='w')
+    g.write(data)
+    g.close()
+    return compressed_data.getvalue()
 
 
 def gzip_decompress(data):

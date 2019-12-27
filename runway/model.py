@@ -14,6 +14,7 @@ from flask_cors import CORS
 from flask_sockets import Sockets
 from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
+from flask_compress import Compress
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
@@ -47,6 +48,7 @@ class RunwayModel(object):
         try: self.app.config['JSON_AS_ASCII'] = False
         except TypeError: pass
         CORS(self.app)
+        Compress(self.app)
         self.define_error_handlers()
         self.define_routes()
 
