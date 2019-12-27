@@ -15,6 +15,7 @@ from runway.model import RunwayModel
 from runway.__version__ import __version__ as model_sdk_version
 from runway.data_types import category, text, number, array, image, vector, file, any as any_type
 from runway.exceptions import *
+from runway.utils import gzip_decompress, gzip_compress
 from utils import *
 from deepdiff import DeepDiff
 from flask import abort
@@ -509,13 +510,11 @@ def test_post_command_json_mime_type_with_gzip():
     rw.run(debug=True)
 
     client = get_test_client(rw)
-    response = client.post('/times_two', 
-        data=gzip.compress(json.dumps({ 'input': 5 }).encode('utf-8')),
-        headers={
-            'content-type': 'application/json',
-            'content-encoding': 'gzip'
-        }
-    )
+    headers = {
+        'content-type': 'application/json',
+        'content-encoding': 'gzip'
+    }
+    response = client.post('/times_two', data=gzip_compress(json.dumps({ 'input': 5 }).encode('utf-8')), headers=headers)
     assert response.is_json
     assert json.loads(response.data) == { 'output': 10 }
 
@@ -538,7 +537,7 @@ def test_post_command_json_mime_type_with_gzip_response():
         }
     )
     assert response.is_json
-    assert json.loads(gzip.decompress(response.data)) == { 'output': 10 }
+    assert json.loads(gzip_decompress(response.data)) == { 'output': 10 }
 
 def test_post_command_form_encoding():
 

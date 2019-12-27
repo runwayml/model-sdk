@@ -45,7 +45,7 @@ def validate_post_request_body_is_json(f):
 def get_json_or_none_if_invalid(request):
     if request.headers.get('content-encoding') == 'gzip' and request.headers.get('content-type') == 'application/json':
         data = request.get_data()
-        decompressed = gzip.decompress(data)
+        decompressed = gzip_decompress(data)
         return json.loads(decompressed)
     else:
         return request.get_json(force=True, silent=True)
@@ -125,6 +125,14 @@ def extract_tarball(path):
     with tarfile.open(path, 'r:*') as tar:
         tar.extractall(path=extracted_dir)
     return extracted_dir
+
+
+def gzip_compress(data):
+    compressed_data = IO()
+    g = gzip.GzipFile(fileobj=compressed_data, mode='w')
+    g.write(data)
+    g.close()
+    return compressed_data.getvalue()
 
 
 def gzip_decompress(data):
