@@ -13,6 +13,7 @@ import urllib3
 import multiprocessing
 import certifi
 import json
+import imageio
 from unidecode import unidecode
 if sys.version_info[0] < 3:
     from cStringIO import StringIO as IO
@@ -220,16 +221,52 @@ def deserialize_data(data, fields):
     return ret
 
 
-def serialize_data(data, fields):
+def serialize_data(data, fields, output_formats=None):
+    if output_formats is None:
+        output_formats = {}
     if type(data) != dict and len(fields) == 1:
         name = fields[0].name
         data = {name: data}
     ret = {}
     for field in fields:
         name = field.name
-        ret[name] = field.serialize(data[name])
+        output_format = output_formats.get(field.name)
+        ret[name] = field.serialize(data[name], output_format=output_format)
     return ret
     
 
 def generate_uuid():
     return uuid.uuid4().hex
+
+
+def adjust_dynamic_range(data, drange_in, drange_out):
+    if drange_in != drange_out:
+        scale = (np.float32(drange_out[1]) - np.float32(drange_out[0])) / (
+            np.float32(drange_in[1]) - np.float32(drange_in[0])
+        )
+        bias = np.float32(drange_out[0]) - np.float32(drange_in[0]) * scale
+        data = data * scale + bias
+        return data
+
+
+def encode_image(image, image_format):
+    buffer = IO()
+    if image_format in ['PNG', 'JPG', 'JPEG']:
+        image.save(buffer, format=image_format)
+    else:
+        data = np.array(image)
+        adjusted = adjust_dynamic_range(data, [0, 255], [0, 1])
+        imageio.plugins.freeimage.download()
+        imageio.imwrite('test.exr', adjusted.astype(np.float32))
+        imageio.imwrite(buffer, adjusted.astype(np.float32), format='exr')
+    return buffer.getvalue()
+
+
+def parse_output_formats_from_header(value):
+    result = {}
+    for item in map(str.strip, value.split(';')):
+        if not item:
+            continue
+        name, value = item.split('=', 1)
+        result[name] = value
+    return result
