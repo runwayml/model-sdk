@@ -244,7 +244,7 @@ def adjust_dynamic_range(data, drange_in, drange_out):
 
 def encode_image(image, image_format):
     buffer = IO()
-    if image_format in ['PNG', 'JPG', 'JPEG']:
+    if image_format.lower() in ['png', 'jpeg']:
         image.save(buffer, format=image_format)
     else:
         data = np.array(image)

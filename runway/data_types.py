@@ -190,15 +190,15 @@ class image(BaseType):
         self.channels = channels
         if channels not in [1, 3, 4]:
             raise InvalidArgumentError(self.name or self.type, 'channels value needs to be 1, 3, or 4')
-        if default_output_format and default_output_format not in ['JPEG', 'PNG']:
-            msg = 'default_output_format needs to be JPEG or PNG'
+        if default_output_format and default_output_format.lower() not in ['jpeg', 'png']:
+            msg = 'default_output_format needs to be "jpeg" or "png'
             raise InvalidArgumentError(self.name, msg)
         if default_output_format:
-            self.default_output_format = default_output_format
+            self.default_output_format = default_output_format.lower()
         elif self.channels == 3:
-            self.default_output_format = 'JPEG'
+            self.default_output_format = 'jpeg'
         else:
-            self.default_output_format = 'PNG'
+            self.default_output_format = 'png'
         self.min_width = min_width
         self.min_height = min_height
         self.max_width = max_width
