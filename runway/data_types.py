@@ -190,15 +190,15 @@ class image(BaseType):
         self.channels = channels
         if channels not in [1, 3, 4]:
             raise InvalidArgumentError(self.name or self.type, 'channels value needs to be 1, 3, or 4')
-        if default_output_format and default_output_format.lower() not in ['jpeg', 'png']:
-            msg = 'default_output_format needs to be "jpeg" or "png'
+        if default_output_format and default_output_format.upper() not in ['JPEG', 'PNG']:
+            msg = 'default_output_format needs to be "JPEG" or "PNG'
             raise InvalidArgumentError(self.name, msg)
         if default_output_format:
-            self.default_output_format = default_output_format.lower()
+            self.default_output_format = default_output_format.upper()
         elif self.channels == 3:
-            self.default_output_format = 'jpeg'
+            self.default_output_format = 'JPEG'
         else:
-            self.default_output_format = 'png'
+            self.default_output_format = 'PNG'
         self.min_width = min_width
         self.min_height = min_height
         self.max_width = max_width
@@ -223,7 +223,7 @@ class image(BaseType):
     def serialize(self, value, output_format=None):
         if output_format is None:
             output_format = self.default_output_format
-        should_output_32bit = output_format.lower() == 'exr'
+        should_output_32bit = output_format.upper() == 'EXR'
         if type(value) is np.ndarray:
             if not should_output_32bit:
                 value = value.astype(np.uint8)
