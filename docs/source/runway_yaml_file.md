@@ -12,7 +12,7 @@ A `runway.yml` file is required to be in the root file directory of each Runway 
 ```yaml
 # Specify the version of the runway.yml spec.
 version: 0.1
-# Supported python versions are 2.7 and 3.6
+# Supported python versions are: 3.6
 python: 3.6
 # The command to run your model. This value is used as the CMD value in
 # the generated Docker image.
@@ -66,7 +66,7 @@ build_steps:
 ## Schema Reference
 
 - `version` (int, optional, default = `0.1`): This version specifies the schema of the configuration file not the version of the Runway Model SDK itself.
-- `python` (float, **required**): The Python version to use when running the model installing python dependencies. Currently supported values are `2.7` and `3.6`.
+- `python` (float, **required**): The Python version to use when running the model installing python dependencies. Only `3.6` is supported at this time.
 - `entrypoint` (string, **required**): The command to run your model. This value is used as the CMD value in the generated Docker image. A standard value for this field might be `entrypoint: python runway_model.py` where `runway_model.py` implements the `@runway.setup()`, `@runway.command()`, and most importantly the `runway.run()` functions.
 - `cuda` (float, **required if building for GPU**): The NVIDIA CUDA version to use in the production GPU runtime environment. The currently supported CUDA versions are `10`, `9.2`, and `9`.
 - `framework` (string, optional, default = `None`): The machine learning framework to pre-install during the build. Currently we support `"tensorflow"` and `"pytorch"` which will install the appropriate CPU or GPU packages of Tensorflow v1.12.0 and Pytorch v1.0 respectively depending on the build environment. If you require an ML framework other than Tensorflow or Pytorch, or a version of these libraries that is different than the versions provided by the ``frameworks`` object, you can omit this object and install these dependencies manually in the build steps.

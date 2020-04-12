@@ -14,7 +14,7 @@ The Runway Model SDK allows you to port new and existing machine learning models
 
 ## Installing
 
-The SDK supports both Python 2.7 and Python 3, but we recommend using Python 3. You can install the module using either pip or pip3 like so:
+The SDK supports Python 3.6+. You can install the module using either pip or pip3 like so:
 
 ```
 pip3 install runway-python
@@ -32,7 +32,7 @@ See the *Importing Models into Runway* [tutorial](https://docs.runwayapp.ai/#/im
 
 ## Developing
 
-If you'd like to contribute to the development of the Runway Python SDK, you can clone and modify this repository by following the instructions below. At the time of this writing the SDK is compatible with Python 2.7 and Python 3, however our developer dependencies `requirements-dev.txt` require Python 3.
+If you'd like to contribute to the development of the Runway Python SDK, you can clone and modify this repository by following the instructions below.
 
 ```bash
 git clone https://github.com/runwayml/model-sdk runway-model-sdk
@@ -50,7 +50,7 @@ make dev
 
 ### Testing
 
-Automated tests for the Runway Model SDK are written using `pytest` and live in the `tests/` directory. We also provide support for code coverage via `pytest-cov`. Tests can be run in both Python 2.7 or Python 3 environments.
+Automated tests for the Runway Model SDK are written using `pytest` and live in the `tests/` directory. We also provide support for code coverage via `pytest-cov`. 
 
 ```bash
 ## Create and activate a python3 virtual environment if you need to.

@@ -5,10 +5,7 @@ sys.path.insert(0, '..')
 sys.path.insert(0, '.')
 
 import os
-if sys.version_info[0] < 3:
-    from cStringIO import StringIO as IO
-else:
-    from io import BytesIO as IO
+from io import BytesIO as IO
 import base64
 import pytest
 import numpy as np

@@ -5,14 +5,11 @@ import inspect
 import json
 import os
 import tarfile
-if sys.version_info[0] < 3:
-    from cStringIO import StringIO as IO
-else:
-    from io import BytesIO as IO
+from io import BytesIO as IO
 import numpy as np
 from scipy.spatial.distance import cdist
 from PIL import Image
-from .utils import is_url, extract_tarball, try_cast_np_scalar, download_file, get_color_palette
+from .utils import is_url, extract_tarball, try_cast_np_scalar, download_file, get_color_palette, encode_image
 from .exceptions import MissingArgumentError, InvalidArgumentError
 
 class BaseType(object):
@@ -35,7 +32,7 @@ class BaseType(object):
         # functions to assign names to runway.data_types based on the dictionary keys.
         self.name = self.type
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         raise NotImplementedError()
 
     def deserialize(self, value):
@@ -74,7 +71,7 @@ class any(BaseType):
     def __init__(self, description=None):
         super(any, self).__init__('any', description=description)
 
-    def serialize(self, v):
+    def serialize(self, v, output_format=None):
         return v
 
     def deserialize(self, v):
@@ -121,7 +118,7 @@ class array(BaseType):
     def deserialize(self, items):
         return [self.item_type.deserialize(item) for item in items]
 
-    def serialize(self, items):
+    def serialize(self, items, output_format=None):
         return [self.item_type.serialize(item) for item in items]
 
     def to_dict(self):
@@ -193,11 +190,11 @@ class image(BaseType):
         self.channels = channels
         if channels not in [1, 3, 4]:
             raise InvalidArgumentError(self.name or self.type, 'channels value needs to be 1, 3, or 4')
-        if default_output_format and default_output_format not in ['JPEG', 'PNG']:
-            msg = 'default_output_format needs to be JPEG or PNG'
+        if default_output_format and default_output_format.upper() not in ['JPEG', 'PNG']:
+            msg = 'default_output_format needs to be "JPEG" or "PNG'
             raise InvalidArgumentError(self.name, msg)
         if default_output_format:
-            self.default_output_format = default_output_format
+            self.default_output_format = default_output_format.upper()
         elif self.channels == 3:
             self.default_output_format = 'JPEG'
         else:
@@ -223,19 +220,23 @@ class image(BaseType):
             deserialized_image = deserialized_image.convert(self.get_pil_mode())
         return deserialized_image
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
+        if output_format is None:
+            output_format = self.default_output_format
+        should_output_32bit = output_format.upper() == 'EXR'
         if type(value) is np.ndarray:
-            im_pil = Image.fromarray(value.astype(np.uint8))
+            if not should_output_32bit:
+                value = value.astype(np.uint8)
+            im_pil = Image.fromarray(value)
         elif issubclass(type(value), Image.Image):
             im_pil = value
         else:
             raise InvalidArgumentError(self.name, 'value is not a PIL or numpy image')
-        buffer = IO()
-        if im_pil.mode != self.get_pil_mode():
+        if not should_output_32bit and im_pil.mode != self.get_pil_mode():
             im_pil = im_pil.convert(self.get_pil_mode())
-        im_pil.save(buffer, format=self.default_output_format)
-        body = base64.b64encode(buffer.getvalue()).decode('utf8')
-        return 'data:image/{format};base64,{body}'.format(format=self.default_output_format.lower(), body=body)
+        encoded = encode_image(im_pil, output_format)
+        body = base64.b64encode(encoded).decode('utf8')
+        return 'data:image/{format};base64,{body}'.format(format=output_format.lower(), body=body)
 
     def to_dict(self):
         ret = super(image, self).to_dict()
@@ -296,7 +297,7 @@ class vector(BaseType):
     def deserialize(self, value):
         return np.array(value)
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         return value.tolist()
 
     def to_dict(self):
@@ -353,7 +354,7 @@ class category(BaseType):
             raise InvalidArgumentError(self.name, msg)
         return value
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         return value
 
     def to_dict(self):
@@ -400,7 +401,7 @@ class number(BaseType):
     def deserialize(self, value):
         return value
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         return try_cast_np_scalar(value)
 
     def to_dict(self):
@@ -448,7 +449,7 @@ class text(BaseType):
     def deserialize(self, value):
         return value
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         return str(value)
 
     def to_dict(self):
@@ -505,7 +506,7 @@ class file(BaseType):
                 raise InvalidArgumentError(self.name, 'file path does not have expected extension')
             return path_or_url
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         return value
 
     def to_dict(self):
@@ -647,7 +648,7 @@ class segmentation(BaseType):
             msg = 'unable to parse expected base64-encoded image'
             raise InvalidArgumentError(self.name, msg)
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         if type(value) is np.ndarray:
             im_pil = Image.fromarray(value)
         elif issubclass(type(value), Image.Image):
@@ -710,7 +711,7 @@ class boolean(BaseType):
         self.validate(value)
         return value
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         self.validate(value)
         return value
 
@@ -750,7 +751,7 @@ class image_point(BaseType):
         self.validate(value)
         return value
     
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         value = [try_cast_np_scalar(item) for item in value]
         self.validate(value)
         return value
@@ -794,7 +795,7 @@ class image_bounding_box(BaseType):
         self.validate(value)
         return value
     
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         value = [try_cast_np_scalar(item) for item in value]
         self.validate(value)
         return value
@@ -904,7 +905,7 @@ class image_landmarks(BaseType):
         self.validate(value)
         return value
 
-    def serialize(self, value):
+    def serialize(self, value, output_format=None):
         self.validate(value)
         value = [[try_cast_np_scalar(pt[0]), try_cast_np_scalar(pt[1])] for pt in value]
         return value

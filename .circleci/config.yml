@@ -7,10 +7,6 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - build-py27:
-          filters:
-            tags:
-              only: /.*/
 jobs:
   build-py36:
     docker:
@@ -58,33 +54,3 @@ jobs:
           command: |
             . venv/bin/activate
             make docs
-  build-py27:
-    docker:
-      - image: continuumio/miniconda:latest
-    steps:
-      - checkout
-      - run:
-          name: install python dependencies
-          command: |
-            conda create -y -n dev python=2.7 pip --force
-            source activate dev
-      - run:
-          name: install make
-          command: |
-            apt-get update
-            apt-get install -y build-essential
-      - restore_cache:
-          key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
-      - run:
-          name: install python dependencies
-          command: |
-            make dev
-      - save_cache:
-          key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "Makefile" }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt"}}
-          paths:
-            - "/opt/conda/envs/dev/"
-      - run:
-          name: run tests
-          command: |
-            source activate dev
-            make test

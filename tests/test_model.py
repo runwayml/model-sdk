@@ -20,10 +20,7 @@ from utils import *
 from deepdiff import DeepDiff
 from flask import abort
 from multiprocessing import Process
-if sys.version_info[0] < 3:
-    from cStringIO import StringIO as IO
-else:
-    from io import BytesIO as IO
+from io import BytesIO as IO
 
 from pytest_cov.embed import cleanup_on_sigterm
 cleanup_on_sigterm()
@@ -79,12 +76,7 @@ def test_model_setup_and_command():
     inputs = { 'input': text(description='Some input text.') }
     outputs = { 'output': number(description='An output number.') }
 
-    # Python 2.7 doesn't seem to handle emoji serialization correctly in JSON,
-    # so we will only test emoji serialization/deserialization in Python 3
-    if sys.version_info[0] < 3:
-        description = 'Sorry, Python 2 doesn\'t support emoji very well'
-    else:
-        description = 'A test command whose description contains emoji 🕳'
+    description = 'A test command whose description contains emoji 🕳'
     expected_manifest['commands'][0]['description'] = description
 
     @rw.command('test_command', inputs=inputs, outputs=outputs, description=description)

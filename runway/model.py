@@ -18,7 +18,7 @@ from flask_compress import Compress
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
 from .data_types import *
-from .utils import gzipped, serialize_command, cast_to_obj, timestamp_millis, \
+from .utils import gzipped, parse_output_formats_from_header, serialize_command, cast_to_obj, timestamp_millis, \
         validate_post_request_body_is_json, get_json_or_none_if_invalid, argspec, \
         deserialize_data, serialize_data, generate_uuid
 from .__version__ import __version__ as model_sdk_version
@@ -126,6 +126,11 @@ class RunwayModel(object):
                     raise UnknownCommandError(command_name)
                 inputs = self.commands[command_name]['inputs']
                 outputs = self.commands[command_name]['outputs']
+                output_formats_header = request.headers.get('X-Runway-Output-Format')
+                if output_formats_header:
+                    output_formats = parse_output_formats_from_header(output_formats_header)
+                else:
+                    output_formats = {}
                 input_dict = get_json_or_none_if_invalid(request)
                 deserialized_inputs = deserialize_data(input_dict, inputs)
                 self.millis_last_command = timestamp_millis()
@@ -144,7 +149,7 @@ class RunwayModel(object):
                     raise reraise(InferenceError, InferenceError(repr(err)), sys.exc_info()[2])
                 if type(output_data) == tuple:
                     output_data, _ = output_data
-                return jsonify(serialize_data(output_data, outputs))
+                return jsonify(serialize_data(output_data, outputs, output_formats=output_formats))
             except RunwayError as err:
                 err.print_exception()
                 return jsonify(err.to_response()), err.code
