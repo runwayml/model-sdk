@@ -250,7 +250,6 @@ def encode_image(image, image_format):
         data = np.array(image)
         adjusted = adjust_dynamic_range(data, [0, 255], [0, 1])
         imageio.plugins.freeimage.download()
-        imageio.imwrite('test.exr', adjusted.astype(np.float32))
         imageio.imwrite(buffer, adjusted.astype(np.float32), format='exr')
     return buffer.getvalue()
 
