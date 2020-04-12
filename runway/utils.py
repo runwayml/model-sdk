@@ -15,12 +15,8 @@ import certifi
 import json
 import imageio
 from unidecode import unidecode
-if sys.version_info[0] < 3:
-    from cStringIO import StringIO as IO
-    from urlparse import urlparse
-else:
-    from io import BytesIO as IO
-    from urllib.parse import urlparse
+from io import BytesIO as IO
+from urllib.parse import urlparse
 import numpy as np
 from flask import after_this_request, request, jsonify
 
@@ -202,10 +198,7 @@ def get_color_palette(name):
 
   
 def argspec(fn):
-    if sys.version_info[0] < 3:
-        return inspect.getargspec(fn)
-    else:
-        return inspect.getfullargspec(fn)
+    return inspect.getfullargspec(fn)
 
 
 def deserialize_data(data, fields):

@@ -5,10 +5,7 @@ import inspect
 import json
 import os
 import tarfile
-if sys.version_info[0] < 3:
-    from cStringIO import StringIO as IO
-else:
-    from io import BytesIO as IO
+from io import BytesIO as IO
 import numpy as np
 from scipy.spatial.distance import cdist
 from PIL import Image
