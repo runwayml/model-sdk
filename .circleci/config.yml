@@ -7,10 +7,6 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - build-py27:
-          filters:
-            tags:
-              only: /.*/
 jobs:
   build-py36:
     docker:
