@@ -6,7 +6,7 @@ These documents serve as a reference for the [Runway](https://runwayml.com) Mode
 
 ## Installing
 
-This SDK supports both Python 3.6+. You can install the module using either `pip` or `pip3` like so:
+This SDK supports both Python 2.7 and Python 3.6+. You can install the module using either `pip` or `pip3` like so:
 
 ```bash
 pip3 install runway-python
