@@ -17,7 +17,7 @@ python: 3.6
 # The command to run your model. This value is used as the CMD value in
 # the generated Docker image.
 entrypoint: python runway_model.py
-# Which NVIDIA CUDA version to use. Supported versions include 10, 9.2, and 9.
+# Which NVIDIA CUDA version to use. Supported versions include 10.2, 10, 9.2, and 9.
 cuda: 9.2
 # Which ML framework would you like to pre-install? The appropriate GPU/CPU
 # versions of these libraries are selected automatically. Accepts values
@@ -68,7 +68,7 @@ build_steps:
 - `version` (int, optional, default = `0.1`): This version specifies the schema of the configuration file not the version of the Runway Model SDK itself.
 - `python` (float, **required**): The Python version to use when running the model installing python dependencies. Only `3.6` is supported at this time.
 - `entrypoint` (string, **required**): The command to run your model. This value is used as the CMD value in the generated Docker image. A standard value for this field might be `entrypoint: python runway_model.py` where `runway_model.py` implements the `@runway.setup()`, `@runway.command()`, and most importantly the `runway.run()` functions.
-- `cuda` (float, **required if building for GPU**): The NVIDIA CUDA version to use in the production GPU runtime environment. The currently supported CUDA versions are `10`, `9.2`, and `9`.
+- `cuda` (float, **required if building for GPU**): The NVIDIA CUDA version to use in the production GPU runtime environment. The currently supported CUDA versions are `10.2`, `10`, `9.2`, and `9`.
 - `framework` (string, optional, default = `None`): The machine learning framework to pre-install during the build. Currently we support `"tensorflow"` and `"pytorch"` which will install the appropriate CPU or GPU packages of Tensorflow v1.12.0 and Pytorch v1.0 respectively depending on the build environment. If you require an ML framework other than Tensorflow or Pytorch, or a version of these libraries that is different than the versions provided by the ``frameworks`` object, you can omit this object and install these dependencies manually in the build steps.
 - `spec` (object, optional): A dictionary of boolean values specifying which CPU/GPU environments to build for. Both the `cpu` and `gpu` environments are enabled (`True`) by default.
     - `cpu` (boolean, optional, default = `True`): Create a CPU build.
