@@ -41,6 +41,14 @@ jobs:
             . venv/bin/activate
             make coverage-codecov
       - run:
+          name: Install awssecret2env
+          command: |
+            wget https://awssecret2env.s3.amazonaws.com/latest/awssecret2env-linux64
+            chmod +x awssecret2env-linux64 && mv awssecret2env-linux64 awssecret2env
+      - run:
+          name: Create .env using awssecret2env
+          command: ./awssecret2env --export --output .env secrets.txt
+      - run:
           name: upload code coverage data
           # This approach relies on transport security only and feels pretty
           # insecure. That said, it is the recommended approach per codecov's
@@ -48,6 +56,7 @@ jobs:
           # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
           command: |
             . venv/bin/activate
+            source .env
             bash <(curl -s https://codecov.io/bash)
       - run:
           name: build docs
