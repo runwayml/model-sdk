@@ -40,7 +40,7 @@ clean-coverage:
 	rm -rf htmlcov
 
 docs:
-	$(MAKE) -C docs html
+	GENERATE_DOCS=1 $(MAKE) -C docs html
 
 publish-release: clean-package
 	python setup.py tag_release

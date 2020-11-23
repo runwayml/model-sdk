@@ -7,10 +7,20 @@ import os
 import tarfile
 from io import BytesIO as IO
 import numpy as np
-from scipy.spatial.distance import cdist
 from PIL import Image
 from .utils import is_url, extract_tarball, try_cast_np_scalar, download_file, get_color_palette, encode_image
 from .exceptions import MissingArgumentError, InvalidArgumentError
+try:
+    from scipy.spatial.distance import cdist
+except Exception as e:
+    # For some reason, the docs generation process triggered by `make docs` throws an exception
+    # importing this module. We haven't noticed the exception causing a problem at runtime,
+    # but it prevents the inline docs from being generated, so we ignore it if we are generating
+    # docs.
+    if os.environ.get('GENERATE_DOCS') == '1' and str(e) == '__name__ must be set to a string object':
+        print('Ignoring import error loading scipy module: {}'.format(e))
+    else:
+        raise e
 
 class BaseType(object):
     """An abstract class that defines a base data type interface. This type
@@ -722,10 +732,10 @@ class boolean(BaseType):
 
 
 class image_point(BaseType):
-    """A point data type representing a specific location in an image. 
+    """A point data type representing a specific location in an image.
     It accepts two normalized floating point numbers [x, y] between 0 and 1,
     where [0, 0] represents the top-left corner and [1, 1] the bottom-right corner of an image.
-    
+
     .. code-block:: python
 
         import runway
@@ -742,15 +752,15 @@ class image_point(BaseType):
     """
     def __init__(self, description=None):
         super(image_point, self).__init__('image_point', description=description)
-    
+
     def validate(self, value):
         if len(value) != 2:
             raise InvalidArgumentError(self.name, 'Value must be of length 2')
-        
+
     def deserialize(self, value):
         self.validate(value)
         return value
-    
+
     def serialize(self, value, output_format=None):
         value = [try_cast_np_scalar(item) for item in value]
         self.validate(value)
@@ -761,7 +771,7 @@ class image_bounding_box(BaseType):
     """An bounding box data type, representing a rectangular region in an image.
     It accepts four normalized floating point numbers [xmin, ymin, xmax, ymax] between 0 and 1,
     where [xmin, xmax] is the top-left corner of the rectangle and [xmax, ymax] is the bottom-right corner.
-    
+
     .. code-block:: python
 
         import runway
@@ -778,7 +788,7 @@ class image_bounding_box(BaseType):
     """
     def __init__(self, description=None):
         super(image_bounding_box, self).__init__('image_bounding_box', description=description)
-    
+
     def validate(self, value):
         if len(value) == 4:
             left, top, right, bottom = value
@@ -790,11 +800,11 @@ class image_bounding_box(BaseType):
                 raise InvalidArgumentError(self.name, message)
         else:
             raise InvalidArgumentError(self.name, 'Value must be of length 4')
-        
+
     def deserialize(self, value):
         self.validate(value)
         return value
-    
+
     def serialize(self, value, output_format=None):
         value = [try_cast_np_scalar(item) for item in value]
         self.validate(value)
@@ -858,8 +868,8 @@ class image_landmarks(BaseType):
     :type length: int
     :param labels: Labels associated with each landmark.
     :type labels: list, optional
-    :param connections: A list of pairs of logically connected landmarks identified by name, e.g. [['left_hip', 'left_shoulder], ['right_hip', 'right_shoulder']]. 
-        The names included in connections should correspond to the names provided by the labels property. 
+    :param connections: A list of pairs of logically connected landmarks identified by name, e.g. [['left_hip', 'left_shoulder], ['right_hip', 'right_shoulder']].
+        The names included in connections should correspond to the names provided by the labels property.
         This property is only used for visualization purposes.
     :type connections: list, optional
     :param description: A description of this variable and how it's used in the model,
