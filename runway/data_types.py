@@ -15,9 +15,8 @@ try:
 except Exception as e:
     # For some reason, the docs generation process triggered by `make docs` throws an exception
     # importing this module. We haven't noticed the exception causing a problem at runtime,
-    # but it prevents the inline docs from being generated, so we ignore it if we are generating
-    # docs.
-    if os.environ.get('GENERATE_DOCS') == '1' and str(e) == '__name__ must be set to a string object':
+    # but it prevents the inline docs from being generated.
+    if str(e) == '__name__ must be set to a string object':
         print('Ignoring import error loading scipy module: {}'.format(e))
     else:
         raise e
