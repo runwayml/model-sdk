@@ -14,6 +14,7 @@ from flask_cors import CORS
 from flask_sockets import Sockets
 from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
+import werkzeug.serving
 from flask_compress import Compress
 from .exceptions import RunwayError, MissingInputError, MissingOptionError, \
     InferenceError, UnknownCommandError, SetupError
@@ -596,14 +597,12 @@ class RunwayModel(object):
 
         # start the run started at millis timer even if we don't actually serve
         self.millis_run_started_at = timestamp_millis()
+
         if no_serve:
             print('Not starting model server because "no_serve" directive is present.')
-        else:
-            print('Starting model server at http://{0}:{1}...'.format(host, port))
-            if debug:
-                logging.basicConfig(level=logging.DEBUG)
-            else:
-                logging.basicConfig(level=logging.INFO)
+            return
+
+        def run_server():
             http_server = WSGIServer((host, port), self.app, handler_class=WebSocketHandler)
             try:
                 http_server.serve_forever()
@@ -612,3 +611,12 @@ class RunwayModel(object):
                 for jobs_for_session in self.jobs.values():
                     for job in jobs_for_session.values():
                         job.terminate()
+
+        if debug:
+            logging.basicConfig(level=logging.DEBUG)
+            run_server = werkzeug.serving.run_with_reloader(run_server)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
+        print('Starting model server at http://{0}:{1}...'.format(host, port))
+        run_server()
