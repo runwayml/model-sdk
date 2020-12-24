@@ -63,8 +63,8 @@ def generate(model, input_args):
     #    usually a model.
     # 2. The input arguments sent by the remote caller via HTTP. These values
     #    match the schema defined by inputs.
-    img = input_args['image']
-    return model.generate(img)
+    noise_vector = input_args['noise_vector']
+    return model.generate(noise_vector)
 
 # The runway.run() function triggers a call to the function wrapped by
 # @runway.setup() passing model_options as its single argument. It also
