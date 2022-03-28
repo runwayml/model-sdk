@@ -1,3 +1,5 @@
+> **DEPRECATION NOTICE**: This SDK has been deprecated. The functionality described below has been sunset and models can no longer be ported to Runway at this time.
+
 <a href="#" target='_self' >
   <p align="center">
     <img src="assets/banner.png">
