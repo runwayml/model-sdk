@@ -78,7 +78,7 @@ If you are looking to port your own model, we recommend starting from our [Model
 
 ### Example `runway.yml`
 
-Each Runway model must have a `runway.yml` configuration file in its root directory. This file defines the steps needed to build and run your model for use with the Runway app. This file is written in YAML, a human-readable superset of JSON. Below is an example `runway.yml` file. This example file illustrates how you can provision your model's environment.
+Each Runway model must have a `runway.yml` configuration file in its root directory. This file defines the steps needed to build and run your model for use with the Runway app. This file is written in YAML, a human-readable format similar (but more powerfull) of JSON. Below is an example `runway.yml` file. This example file illustrates how you can provision your model's environment.
 
 ```yaml
 version: 0.1
